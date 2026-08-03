@@ -1,0 +1,15 @@
+{
+  "name": "SCENE BOX - 리센느 사진정리",
+  "short_name": "SCENE BOX",
+  "description": "리센느 사진을 멤버, 날짜, 활동별로 정리하는 개인용 오프라인 앱",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f4ff",
+  "theme_color": "#58417e",
+  "orientation": "any",
+  "icons": [
+    {"src":"icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}
