@@ -32,7 +32,10 @@ header{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.86);backdro
 .btn.danger{background:#ffe7ed;color:var(--danger)}
 .btn.install{background:#241c35;color:#fff}.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:#45b36b;margin-right:5px}
 main{max-width:1200px;margin:auto;padding:20px 18px 90px}
-.hero{background:linear-gradient(135deg,#2c2141,#58417e);color:#fff;border-radius:20px;padding:16px 18px;box-shadow:var(--shadow);display:grid;grid-template-columns:1fr 1.35fr;gap:14px;align-items:stretch}
+.hero{--hero-bg:none;--hero-dim:.42;--hero-blur:0px;position:relative;overflow:hidden;background:linear-gradient(135deg,#2c2141,#58417e);color:#fff;border-radius:20px;padding:16px 18px;box-shadow:var(--shadow);display:grid;grid-template-columns:1fr 1.35fr;gap:14px;align-items:stretch}
+.hero::before{content:"";position:absolute;inset:-12px;background-image:var(--hero-bg);background-size:cover;background-position:center;filter:blur(var(--hero-blur));transform:scale(1.04);z-index:0}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(44,33,65,var(--hero-dim)),rgba(88,65,126,var(--hero-dim)));z-index:1}
+.hero>*{position:relative;z-index:2}
 .hero h1{font-size:clamp(24px,3.5vw,38px);line-height:1.08;margin:0 0 7px}
 .hero p{margin:0;color:#e8def5}
 .drop{border:2px dashed rgba(255,255,255,.4);border-radius:15px;min-height:112px;display:flex;align-items:center;justify-content:center;text-align:center;padding:13px;background:rgba(255,255,255,.07)}
@@ -44,6 +47,7 @@ main{max-width:1200px;margin:auto;padding:20px 18px 90px}
 .members{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 18px}
 .chip{border:1px solid var(--line);background:white;border-radius:999px;padding:8px 12px;font-weight:750}
 .chip.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chip-count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;margin-left:3px;border-radius:999px;background:#f0ebf8;color:var(--muted);font-size:11px;font-weight:850}.chip.active .chip-count{background:rgba(255,255,255,.2);color:#fff}
 .stats{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 15px}
 .stat{background:white;border:1px solid var(--line);border-radius:14px;padding:9px 12px;color:var(--muted)}
 .stat b{color:var(--ink)}
@@ -100,6 +104,9 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 .bulk{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:15;background:#211a30;color:white;border-radius:18px;padding:10px;display:none;gap:8px;box-shadow:var(--shadow);align-items:center;flex-wrap:wrap;justify-content:center;width:max-content;max-width:calc(100vw - 20px)}
 .bulk .member-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
 .bulk .member-btn{padding:8px 11px;background:#fff;color:#241c35;border:2px solid transparent;position:relative;z-index:2;pointer-events:auto;touch-action:manipulation}.bulk .member-btn.active{background:#8a6ee8!important;color:#fff!important;border-color:#c9baff!important;box-shadow:0 0 0 3px rgba(138,110,232,.25);transform:translateY(-1px)}
+
+.bubble-badge{display:inline-flex;align-items:center;gap:3px;background:#eaf7ff;color:#25739a;border-radius:999px;padding:4px 7px;font-size:11px;font-weight:800}
+.setting-row{display:grid;grid-template-columns:100px 1fr 48px;align-items:center;gap:10px;margin:12px 0}.setting-row output{text-align:right;font-weight:800}.hero-preview{height:150px;border-radius:16px;background:linear-gradient(135deg,#2c2141,#58417e);background-size:cover;background-position:center;border:1px solid var(--line)}
 @media(max-width:760px){.bulk{bottom:10px;padding:8px}.bulk .member-btn{padding:7px 9px;font-size:12px}.bulk> b{width:100%;text-align:center}}
 .bulk.show{display:flex}
 .small{font-size:12px;color:var(--muted)}
@@ -111,6 +118,9 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 .duplicate-row img{width:64px;height:64px;object-fit:cover;border-radius:9px;background:#eee}
 .duplicate-row .keep{font-size:11px;color:#4f8b5d;font-weight:800}
 .duplicate-empty{text-align:center;padding:35px 12px;color:var(--muted)}
+
+.bubble-badge{display:inline-flex;align-items:center;gap:3px;background:#eaf7ff;color:#25739a;border-radius:999px;padding:4px 7px;font-size:11px;font-weight:800}
+.setting-row{display:grid;grid-template-columns:100px 1fr 48px;align-items:center;gap:10px;margin:12px 0}.setting-row output{text-align:right;font-weight:800}.hero-preview{height:150px;border-radius:16px;background:linear-gradient(135deg,#2c2141,#58417e);background-size:cover;background-position:center;border:1px solid var(--line)}
 @media(max-width:760px){
  .hero{grid-template-columns:1fr;padding:14px;border-radius:18px;gap:10px}.hero h1{font-size:28px}.hero p{font-size:14px}.drop{min-height:82px;padding:10px}.controls{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 0}.controls .search{grid-column:span 2}.controls .field{font-size:12px;padding:9px 6px}.date-range{grid-column:span 2;gap:4px}.date-range .range-mark{font-size:10px}
  .formgrid{grid-template-columns:1fr}.full{grid-column:auto}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
@@ -130,10 +140,11 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 <body>
 <header>
  <div class="top">
-  <div><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE · v3</div></div>
+  <div><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE · v5</div></div>
   <div class="spacer"></div>
   <button class="btn" id="homeBtn" title="전체 화면으로 돌아가기">⌂ 홈</button>
   <button class="btn install" id="installBtn" hidden>앱 설치</button>
+  <button class="btn" id="backgroundBtn">배경 설정</button>
   <button class="btn" id="duplicateBtn">중복 정리</button>
   <button class="btn" id="backupBtn">전체 백업</button>
   <button class="btn" id="restoreBtn">복원</button>
@@ -141,6 +152,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
   <button class="btn primary" id="addBtn">＋ 사진 추가</button>
   <input id="fileInput" type="file" accept="image/*" multiple hidden>
   <input id="restoreInput" type="file" accept="application/zip,.zip,application/json,.json" hidden>
+  <input id="backgroundInput" type="file" accept="image/*" hidden>
  </div>
 </header>
 
@@ -181,16 +193,34 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
  <b id="selectedCount">0장 선택</b>
  <div class="member-actions" id="bulkMemberButtons" aria-label="선택 사진 멤버 분류"></div>
  <button class="btn primary" id="bulkApplyMembers">멤버 적용</button>
+ <button class="btn" id="bulkBubble">🫧 버블 지정/해제</button>
  <button class="btn danger" id="bulkDelete">삭제</button>
  <button class="btn" id="clearSelect">취소</button>
 </div>
 
+
+<dialog id="backgroundDialog">
+ <div class="modal">
+  <h2>상단 배경 설정</h2>
+  <div id="heroPreview" class="hero-preview"></div>
+  <div class="setting-row"><b>어둡기</b><input type="range" id="bgDim" min="0" max="80" value="42"><output id="bgDimOut">42%</output></div>
+  <div class="setting-row"><b>흐림</b><input type="range" id="bgBlur" min="0" max="20" value="0"><output id="bgBlurOut">0px</output></div>
+  <div class="hint">배경은 이 기기에 저장되며 전체 백업 ZIP에도 포함됩니다.</div>
+  <div class="actions">
+   <button class="btn danger" id="removeBackground">배경 삭제</button>
+   <button class="btn" id="chooseBackground">사진 선택</button>
+   <button class="btn" id="closeBackground">닫기</button>
+   <button class="btn primary" id="saveBackground">저장</button>
+  </div>
+ </div>
+</dialog>
 <dialog id="importDialog">
  <div class="modal">
   <h2>추가하면서 바로 분류</h2>
   <div class="formgrid">
    <div><b>멤버 (여러 명 선택 가능)</b><div class="member-picker" id="importMembers"></div></div>
    <label>촬영일<input class="field" type="date" id="importDate"></label>
+   <label class="bubble-check"><input type="checkbox" id="importBubble"> 🫧 버블 사진</label>
    <label>활동 / 앨범<input class="field" id="importActivity" placeholder="예: Glow Up, 팬사인회"></label>
    <label>출처<input class="field" id="importSource" placeholder="예: X, 인스타"></label>
    <label class="full">공통 태그<input class="field" id="importTags" placeholder="쉼표로 구분"></label>
@@ -245,6 +275,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
    <label class="full">제목<input class="field" id="editTitle" placeholder="사진 제목"></label>
    <div><b>멤버 (여러 명 선택 가능)</b><div class="member-picker" id="editMembers"></div></div>
    <label>촬영일<input class="field" type="date" id="editDate"></label>
+   <label class="bubble-check"><input type="checkbox" id="editBubble"> 🫧 버블 사진</label>
    <label>활동 / 앨범<input class="field" id="editActivity" placeholder="예: lip bomb, 팬사인회"></label>
    <label>출처<input class="field" id="editSource" placeholder="예: X, 인스타, 공식카페"></label>
    <label class="full">태그<input class="field" id="editTags" placeholder="쉼표로 구분: 정원이, 셀카, 금발"></label>
@@ -261,7 +292,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 <script>
 const MEMBERS=["원이","미나미","리브","메이","제나"];
 const ASSIGNABLE=[...MEMBERS,"기타"];
-const MEMBER_FILTERS=["미분류",...ASSIGNABLE,"단체"];
+const MEMBER_FILTERS=["미분류",...ASSIGNABLE,"단체","버블"];
 function getMembers(x){
  if(Array.isArray(x.members))return x.members.filter(m=>ASSIGNABLE.includes(m));
  if(x.member && ASSIGNABLE.includes(x.member))return [x.member];
@@ -277,8 +308,12 @@ function exactSameMembers(actual, wanted){
 function memberMatches(x,filters){
  const selected=filters instanceof Set?[...filters]:Array.isArray(filters)?filters:(filters?[filters]:[]);
  if(!selected.length)return true;
- const wantsGroup=selected.includes("단체");
- const wanted=selected.filter(m=>m!=="단체");
+ const wantsBubble=selected.includes("버블");
+ if(wantsBubble && !x.bubble)return false;
+ const memberSelected=selected.filter(m=>m!=="버블");
+ if(!memberSelected.length)return true;
+ const wantsGroup=memberSelected.includes("단체");
+ const wanted=memberSelected.filter(m=>m!=="단체");
  if(isGroup(x))return wantsGroup;
  const actual=getMembers(x);
  if(wanted.includes("미분류"))return actual.length===0 && wanted.length===1;
@@ -300,6 +335,27 @@ function togglePickerButton(btn){
   if(groupBtn){const gi=groupBtn.querySelector("input");gi.checked=false;groupBtn.classList.remove("selected");groupBtn.setAttribute("aria-pressed","false")}
   input.checked=!input.checked;btn.classList.toggle("selected",input.checked);btn.setAttribute("aria-pressed",String(input.checked));
  }
+}
+const BG_KEY="scene-box-hero-bg-v1";
+let pendingBackgroundData=null;
+function getBgSettings(){try{return JSON.parse(localStorage.getItem(BG_KEY)||"{}")||{}}catch{return {}}}
+function setBgSettings(v){localStorage.setItem(BG_KEY,JSON.stringify(v));applyBackground(v)}
+function applyBackground(v=getBgSettings()){
+ const hero=document.querySelector(".hero"); if(!hero)return;
+ hero.style.setProperty("--hero-bg",v.dataUrl?`url(${JSON.stringify(v.dataUrl)})`:"none");
+ hero.style.setProperty("--hero-dim",String((v.dim??42)/100));
+ hero.style.setProperty("--hero-blur",`${v.blur??0}px`);
+}
+function updateBgPreview(){
+ const current=getBgSettings(), data=pendingBackgroundData===null?current.dataUrl:pendingBackgroundData;
+ heroPreview.style.backgroundImage=data?`linear-gradient(rgba(44,33,65,${bgDim.value/100}),rgba(88,65,126,${bgDim.value/100})),url(${JSON.stringify(data)})`:"linear-gradient(135deg,#2c2141,#58417e)";
+ heroPreview.style.filter=`blur(${bgBlur.value}px)`; bgDimOut.value=`${bgDim.value}%`; bgBlurOut.value=`${bgBlur.value}px`;
+}
+async function compressBackground(file){
+ const img=await createImageBitmap(file), maxW=1600,maxH=900,scale=Math.min(1,maxW/img.width,maxH/img.height);
+ const c=document.createElement("canvas");c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
+ c.getContext("2d").drawImage(img,0,0,c.width,c.height); img.close();
+ return c.toDataURL("image/jpeg",.82);
 }
 const DB_NAME="scene-box-db", STORE="photos";
 let db, items=[], memberFilters=new Set(), editingId=null, selected=new Set(), pendingFiles=[];
@@ -335,7 +391,7 @@ function openImport(files){
  pendingFiles=[...files].filter(f=>f.type.startsWith("image/"));
  if(!pendingFiles.length)return;
  importList.innerHTML=pendingFiles.map((f,i)=>`<div class="import-row"><img src="${objectURL(f)}"><div><input class="field import-title" data-i="${i}" value="${esc(baseName(f.name))}" aria-label="사진 제목"><div class="small">${esc(f.name)}</div></div></div>`).join("");
- const currentFilters=[...memberFilters]; importMembers.innerHTML=pickerHTML("importMember",currentFilters.filter(m=>ASSIGNABLE.includes(m)),currentFilters.includes("단체")); importDate.value=""; importActivity.value=""; importSource.value=""; importTags.value=""; titlePattern.value="";
+ const currentFilters=[...memberFilters]; importMembers.innerHTML=pickerHTML("importMember",currentFilters.filter(m=>ASSIGNABLE.includes(m)),currentFilters.includes("단체")); importDate.value=""; importBubble.checked=false; importActivity.value=""; importSource.value=""; importTags.value=""; titlePattern.value="";
  importDialog.showModal();
 }
 function applyTitlePattern(){
@@ -355,7 +411,7 @@ async function savePendingFiles(){
    const f=pendingFiles[i], hash=await sha256(f);
    if(known.has(hash)){skipped++;continue}
    known.add(hash);
-   await put({id:uid(),name:titles[i]||baseName(f.name),originalName:f.name,blob:f,hash,members:chosen.members,group:chosen.group,member:chosen.group?"단체":(chosen.members[0]||"미분류"),date:importDate.value,activity:importActivity.value.trim(),source:importSource.value.trim(),tags,note:"",fav:false,addedAt:Date.now()+i});
+   await put({id:uid(),name:titles[i]||baseName(f.name),originalName:f.name,blob:f,hash,members:chosen.members,group:chosen.group,member:chosen.group?"단체":(chosen.members[0]||"미분류"),date:importDate.value,bubble:importBubble.checked,activity:importActivity.value.trim(),source:importSource.value.trim(),tags,note:"",fav:false,addedAt:Date.now()+i});
    saved++;
   }
   pendingFiles=[]; importDialog.close(); fileInput.value=""; await load();
@@ -366,22 +422,27 @@ async function savePendingFiles(){
 function objectURL(blob){return URL.createObjectURL(blob)}
 function esc(s=""){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 
-function filtered(){
+function passesNonMemberFilters(x){
  const q=document.querySelector("#search").value.trim().toLowerCase();
  const af=document.querySelector("#activityFilter").value;
  const ff=document.querySelector("#favFilter").value;
  const dateFrom=document.querySelector("#dateFrom").value;
  const dateTo=document.querySelector("#dateTo").value;
- let arr=items.filter(x=>{
-  const hay=[x.name,memberText(x),...memberLabels(x),x.activity,x.source,x.note,...(x.tags||[])].join(" ").toLowerCase();
-  return (!q||hay.includes(q)) && memberMatches(x,memberFilters) && (!af||x.activity===af)
-   && (!dateFrom||((x.date||"")>=dateFrom))
-   && (!dateTo||((x.date||"")<=dateTo))
-   && (!ff||(ff==="fav"?x.fav: !isGroup(x)&&getMembers(x).length===0 && !x.activity && !(x.tags||[]).length));
- });
+ const hay=[x.name,memberText(x),...memberLabels(x),x.bubble?"버블":"",x.activity,x.source,x.note,...(x.tags||[])].join(" ").toLowerCase();
+ return (!q||hay.includes(q)) && (!af||x.activity===af)
+  && (!dateFrom||((x.date||"")>=dateFrom))
+  && (!dateTo||((x.date||"")<=dateTo))
+  && (!ff||(ff==="fav"?x.fav: !isGroup(x)&&getMembers(x).length===0 && !x.activity && !(x.tags||[]).length));
+}
+function filtered(){
+ let arr=items.filter(x=>passesNonMemberFilters(x) && memberMatches(x,memberFilters));
  const s=document.querySelector("#sort").value;
  arr.sort((a,b)=>s==="old"?a.addedAt-b.addedAt:s==="dateDesc"?(b.date||"").localeCompare(a.date||""):s==="name"?a.name.localeCompare(b.name):b.addedAt-a.addedAt);
  return arr;
+}
+function memberCountFor(label,baseItems){
+ if(label==="버블")return baseItems.filter(x=>x.bubble).length;
+ return baseItems.filter(x=>memberMatches(x,new Set([label]))).length;
 }
 
 function render(){
@@ -390,9 +451,10 @@ function render(){
  af.innerHTML='<option value="">모든 활동</option>'+acts.map(a=>`<option>${esc(a)}</option>`).join("");
  if(acts.includes(prev))af.value=prev;
 
+ const countBase=items.filter(passesNonMemberFilters);
  document.querySelector("#memberChips").innerHTML=
-  `<button class="chip ${memberFilters.size===0?"active":""}" data-m="">전체</button>`+
-  MEMBER_FILTERS.map(m=>`<button class="chip ${memberFilters.has(m)?"active":""}" data-m="${m}" aria-pressed="${memberFilters.has(m)}">${m}</button>`).join("");
+  `<button class="chip ${memberFilters.size===0?"active":""}" data-m="">전체 <span class="chip-count">${countBase.length}</span></button>`+
+  MEMBER_FILTERS.map(m=>`<button class="chip ${memberFilters.has(m)?"active":""}" data-m="${m}" aria-pressed="${memberFilters.has(m)}">${m} <span class="chip-count">${memberCountFor(m,countBase)}</span></button>`).join("");
 
  const arr=filtered(), favs=items.filter(x=>x.fav).length, un=items.filter(x=>!isGroup(x)&&getMembers(x).length===0).length;
  document.querySelector("#stats").innerHTML=`<div class="stat">전체 <b>${items.length}</b></div><div class="stat">현재 보기 <b>${arr.length}</b></div><div class="stat">최애 <b>${favs}</b></div><div class="stat">미분류 <b>${un}</b></div>`;
@@ -407,7 +469,7 @@ function render(){
    <div class="cardbody">
     <div class="name">${esc(x.name)}</div>
     <div class="meta">${esc([memberText(x),x.date,x.activity].filter(Boolean).join(" · ")||"미분류")}</div>
-    <div class="tags">${(x.tags||[]).slice(0,4).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
+    <div class="tags">${x.bubble?`<span class="bubble-badge">🫧 버블</span>`:""}${(x.tags||[]).slice(0,4).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
    </div>
   </article>`;
  if(document.querySelector("#viewMode").value==="member"){
@@ -462,6 +524,7 @@ function openEdit(id){
  document.querySelector("#editMembers").innerHTML=pickerHTML("editMember",getMembers(x),isGroup(x));
  document.querySelector("#editDate").value=x.date||"";
  document.querySelector("#editActivity").value=x.activity||"";
+ document.querySelector("#editBubble").checked=!!x.bubble;
  document.querySelector("#editSource").value=x.source||"";
  document.querySelector("#editTags").value=(x.tags||[]).join(", ");
  document.querySelector("#editNote").value=x.note||"";
@@ -534,7 +597,7 @@ document.querySelector("#saveEdit").onclick=async()=>{
  const chosen=readPicker("editMember");
  Object.assign(x,{
   name:editTitle.value.trim()||x.name,
-  members:chosen.members,group:chosen.group,member:chosen.group?"단체":(chosen.members[0]||"미분류"),date:editDate.value,activity:editActivity.value.trim(),source:editSource.value.trim(),
+  members:chosen.members,group:chosen.group,member:chosen.group?"단체":(chosen.members[0]||"미분류"),date:editDate.value,bubble:editBubble.checked,activity:editActivity.value.trim(),source:editSource.value.trim(),
   tags:editTags.value.split(",").map(v=>v.trim()).filter(Boolean),note:editNote.value.trim()
  });
  await put(x);editDialog.close();await load();
@@ -544,6 +607,13 @@ document.querySelector("#deleteOne").onclick=async()=>{
  await del(editingId);editDialog.close();await load();
 };
 document.querySelector("#clearSelect").onclick=()=>{selected.clear();bulkChosenMembers.clear();updateBulkMemberButtons();render()};
+document.querySelector("#bulkBubble").onclick=async()=>{
+ const chosen=[...selected].map(id=>items.find(v=>v.id===id)).filter(Boolean);
+ const makeBubble=!chosen.every(x=>x.bubble);
+ for(const x of chosen){x.bubble=makeBubble;await put(x)}
+ selected.clear();await load();
+ alert(makeBubble?"선택한 사진을 버블 사진으로 지정했습니다.":"선택한 사진의 버블 지정을 해제했습니다.");
+};
 document.querySelector("#bulkDelete").onclick=async()=>{
  if(!confirm(`${selected.size}장을 목록에서 삭제할까요?`))return;
  for(const id of selected)await del(id);selected.clear();await load();
@@ -649,6 +719,13 @@ function readStoredZip(buffer){
  }
  return files;
 }
+backgroundBtn.onclick=()=>{const v=getBgSettings();pendingBackgroundData=null;bgDim.value=v.dim??42;bgBlur.value=v.blur??0;updateBgPreview();backgroundDialog.showModal()};
+chooseBackground.onclick=()=>backgroundInput.click();
+backgroundInput.onchange=async e=>{const f=e.target.files?.[0];if(!f)return;pendingBackgroundData=await compressBackground(f);updateBgPreview()};
+bgDim.oninput=updateBgPreview;bgBlur.oninput=updateBgPreview;
+removeBackground.onclick=()=>{pendingBackgroundData="";updateBgPreview()};
+closeBackground.onclick=()=>backgroundDialog.close();
+saveBackground.onclick=()=>{const old=getBgSettings();setBgSettings({dataUrl:pendingBackgroundData===null?(old.dataUrl||""):pendingBackgroundData,dim:Number(bgDim.value),blur:Number(bgBlur.value)});backgroundDialog.close()};
 backupBtn.onclick=async()=>{
  if(!items.length)return alert("백업할 사진이 없습니다.");
  const ok=confirm("전체 백업 안내\n\n사진 원본과 제목·멤버·날짜·태그·메모를 ZIP 파일 하나에 저장합니다. 사진이 많으면 생성에 시간이 걸리고 파일 용량이 클 수 있습니다.\n\n지금 ZIP 백업을 만들까요?");
@@ -662,7 +739,7 @@ backupBtn.onclick=async()=>{
    entries.push({name:fileName,data:await x.blob.arrayBuffer()});
    const copy={...x,photoFile:fileName,mimeType:x.blob.type};delete copy.blob;meta.push(copy);n++;
   }
-  const manifest={app:"SCENE BOX",version:2,format:"zip",createdAt:new Date().toISOString(),photos:meta};
+  const manifest={app:"SCENE BOX",version:3,format:"zip",createdAt:new Date().toISOString(),settings:{heroBackground:getBgSettings()},photos:meta};
   entries.unshift({name:"backup.json",data:new TextEncoder().encode(JSON.stringify(manifest,null,2))});
   const zip=await makeZip(entries);downloadBlob(zip,`scene-box-full-backup-${new Date().toISOString().slice(0,10)}.zip`);
   alert("ZIP 전체 백업이 저장되었습니다. 이 파일 하나에 사진 원본과 모든 분류 정보가 들어 있습니다.");
@@ -679,12 +756,14 @@ restoreInput.onchange=async e=>{
    const files=readStoredZip(await file.arrayBuffer()),manifestBytes=files.get("backup.json");
    if(!manifestBytes)throw new Error("backup.json이 없는 백업 파일입니다.");
    const data=JSON.parse(new TextDecoder().decode(manifestBytes));
+   if(data.settings?.heroBackground)setBgSettings(data.settings.heroBackground);
    if(data.app!=="SCENE BOX"||!Array.isArray(data.photos))throw new Error("SCENE BOX 백업 파일이 아닙니다.");
    if(!confirm(`${data.photos.length}장의 사진을 복원할까요?`))return;
    for(const p of data.photos){const bytes=files.get(p.photoFile);if(!bytes)continue;const item={...p,blob:new Blob([bytes],{type:p.mimeType||"image/jpeg"})};delete item.photoFile;delete item.mimeType;await put(item)}
    await load();alert("ZIP 복원이 완료되었습니다.");
   }else{
    const data=JSON.parse(await file.text());
+   if(data.settings?.heroBackground)setBgSettings(data.settings.heroBackground);
    if(data.app!=="SCENE BOX"||!Array.isArray(data.photos))throw new Error("SCENE BOX 백업 파일이 아닙니다.");
    if(!confirm(`${data.photos.length}장의 예전 JSON 백업을 복원할까요?`))return;
    for(const p of data.photos){const item={...p,blob:dataURLToBlob(p.blobData)};delete item.blobData;await put(item)}
@@ -714,8 +793,8 @@ document.querySelector("#homeBtn").onclick=()=>{
 document.querySelector("#exportBtn").onclick=()=>{
  const ok=confirm("목록 CSV 안내\n\n사진 원본은 포함하지 않고 제목·원본 파일명·멤버·날짜·활동·태그·메모 같은 목록만 표 파일로 저장합니다. 엑셀이나 구글 스프레드시트에서 열 수 있습니다.\n\nCSV 목록을 저장할까요?");
  if(!ok)return;
- const rows=[["제목","원본 파일명","멤버","촬영일","활동","출처","태그","메모","최애"]];
- items.forEach(x=>rows.push([x.name,x.originalName||x.name,memberText(x),x.date,x.activity,x.source,(x.tags||[]).join("|"),x.note,x.fav?"Y":"N"]));
+ const rows=[["제목","원본 파일명","멤버","버블","촬영일","활동","출처","태그","메모","최애"]];
+ items.forEach(x=>rows.push([x.name,x.originalName||x.name,memberText(x),x.bubble?"Y":"N",x.date,x.activity,x.source,(x.tags||[]).join("|"),x.note,x.fav?"Y":"N"]));
  const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v||"").replaceAll('"','""')}"`).join(",")).join("\n");
  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="scene-box-photo-list.csv";a.click();
 };
@@ -724,7 +803,7 @@ document.querySelector("#exportBtn").onclick=()=>{
  const savedSize=localStorage.getItem("sceneBoxPhotoSize")||"small";
  document.querySelector("#photoSize").value=savedSize;
  document.body.dataset.photoSize=savedSize;
- db=await openDB();await load();
+ applyBackground();db=await openDB();await load();
 })();
 </script>
 </body>
