@@ -140,7 +140,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 <body>
 <header>
  <div class="top">
-  <div><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE · v5</div></div>
+  <div><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE · v7</div></div>
   <div class="spacer"></div>
   <button class="btn" id="homeBtn" title="전체 화면으로 돌아가기">⌂ 홈</button>
   <button class="btn install" id="installBtn" hidden>앱 설치</button>
@@ -176,6 +176,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
   <select class="field" id="activityFilter"><option value="">모든 활동</option></select>
   <select class="field" id="favFilter"><option value="">전체 사진</option><option value="fav">★ 최애만</option><option value="untagged">미분류만</option></select>
   <select class="field" id="mediaFilter"><option value="">사진+GIF 전체</option><option value="gif">🎞️ GIF만</option><option value="still">🖼️ 일반 사진만</option></select>
+  <select class="field" id="bubbleView"><option value="all">🫧 버블 포함</option><option value="exclude">버블 제외</option><option value="only">버블만 보기</option></select>
   <select class="field" id="photoSize"><option value="tiny">매우 작게</option><option value="small">작게</option><option value="normal">보통</option><option value="large">크게</option><option value="list">리스트</option></select>
   <select class="field" id="viewMode"><option value="grid">전체 그리드</option><option value="member">멤버별 나누기</option></select>
   <div class="date-range" aria-label="촬영일 기간 검색">
@@ -429,6 +430,7 @@ function passesNonMemberFilters(x){
  const af=document.querySelector("#activityFilter").value;
  const ff=document.querySelector("#favFilter").value;
  const mf=document.querySelector("#mediaFilter").value;
+ const bv=document.querySelector("#bubbleView").value;
  const dateFrom=document.querySelector("#dateFrom").value;
  const dateTo=document.querySelector("#dateTo").value;
  const hay=[x.name,memberText(x),...memberLabels(x),x.bubble?"버블":"",x.activity,x.source,x.note,...(x.tags||[])].join(" ").toLowerCase();
@@ -436,6 +438,7 @@ function passesNonMemberFilters(x){
   && (!dateFrom||((x.date||"")>=dateFrom))
   && (!dateTo||((x.date||"")<=dateTo))
   && (!mf||(mf==="gif"?isGif(x):!isGif(x)))
+  && (bv==="all"||(bv==="exclude"?!x.bubble:x.bubble))
   && (!ff||(ff==="fav"?x.fav: !isGroup(x)&&getMembers(x).length===0 && !x.activity && !(x.tags||[]).length));
 }
 function filtered(){
@@ -587,7 +590,7 @@ document.body.addEventListener("click",async e=>{
  if(e.target.closest(".view-photo")||e.target.matches(".thumb")){showLightbox(id);return}
  openEdit(id);
 });
-["search","sort","activityFilter","favFilter","mediaFilter","viewMode","dateFrom","dateTo"].forEach(id=>document.querySelector("#"+id).addEventListener(id==="search"?"input":"change",render));
+["search","sort","activityFilter","favFilter","mediaFilter","bubbleView","viewMode","dateFrom","dateTo"].forEach(id=>document.querySelector("#"+id).addEventListener(id==="search"?"input":"change",render));
 document.querySelector("#photoSize").addEventListener("change",e=>{document.body.dataset.photoSize=e.target.value;localStorage.setItem("sceneBoxPhotoSize",e.target.value);});
 closeLightbox.onclick=()=>lightboxDialog.close();
 prevPhoto.onclick=()=>moveLightbox(-1);
@@ -787,6 +790,7 @@ document.querySelector("#homeBtn").onclick=()=>{
  document.querySelector("#activityFilter").value="";
  document.querySelector("#favFilter").value="";
  document.querySelector("#mediaFilter").value="";
+ document.querySelector("#bubbleView").value="all";
  document.querySelector("#dateFrom").value="";
  document.querySelector("#dateTo").value="";
  document.querySelector("#viewMode").value="grid";
