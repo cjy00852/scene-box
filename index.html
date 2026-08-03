@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SCENE BOX — 리센느 사진정리</title>
+<meta name="theme-color" content="#58417e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SCENE BOX">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+:root{
+  --bg:#f7f4ff;--panel:#ffffff;--ink:#241c35;--muted:#81778f;
+  --accent:#8a6ee8;--accent2:#ff8bb7;--line:#e9e2f2;--danger:#d94d69;
+  --shadow:0 12px 35px rgba(67,42,98,.12)
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;background:linear-gradient(160deg,#faf7ff,#fff7fb);color:var(--ink)}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+header{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.86);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.top{max-width:1200px;margin:auto;padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.logo{font-weight:900;letter-spacing:.08em;font-size:20px}
+.logo b{color:var(--accent)}
+.subtitle{font-size:12px;color:var(--muted)}
+.spacer{flex:1}
+.btn{border:0;border-radius:14px;padding:10px 14px;background:#eee8fa;color:var(--ink);font-weight:750}
+.btn.primary{background:linear-gradient(135deg,var(--accent),#a788ff);color:#fff}
+.btn.pink{background:linear-gradient(135deg,var(--accent2),#ffafcd);color:white}
+.btn.danger{background:#ffe7ed;color:var(--danger)}
+.btn.install{background:#241c35;color:#fff}.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:#45b36b;margin-right:5px}
+main{max-width:1200px;margin:auto;padding:20px 18px 90px}
+.hero{background:linear-gradient(135deg,#2c2141,#58417e);color:#fff;border-radius:20px;padding:16px 18px;box-shadow:var(--shadow);display:grid;grid-template-columns:1fr 1.35fr;gap:14px;align-items:stretch}
+.hero h1{font-size:clamp(24px,3.5vw,38px);line-height:1.08;margin:0 0 7px}
+.hero p{margin:0;color:#e8def5}
+.drop{border:2px dashed rgba(255,255,255,.4);border-radius:15px;min-height:112px;display:flex;align-items:center;justify-content:center;text-align:center;padding:13px;background:rgba(255,255,255,.07)}
+.drop.drag{background:rgba(255,255,255,.18);transform:scale(1.01)}
+.controls{margin:14px 0 12px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.controls .search{grid-column:span 2}
+.field{width:100%;min-width:0;border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:10px 11px;outline:none}
+.field:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(138,110,232,.12)}
+.members{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 18px}
+.chip{border:1px solid var(--line);background:white;border-radius:999px;padding:8px 12px;font-weight:750}
+.chip.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 15px}
+.stat{background:white;border:1px solid var(--line);border-radius:14px;padding:9px 12px;color:var(--muted)}
+.stat b{color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+body[data-photo-size="tiny"] .grid{grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:5px}
+body[data-photo-size="small"] .grid{grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:8px}
+body[data-photo-size="normal"] .grid{grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:11px}
+body[data-photo-size="large"] .grid{grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:16px}
+body[data-photo-size="list"] .grid{grid-template-columns:1fr;gap:8px}
+body[data-photo-size="list"] .card{display:grid;grid-template-columns:92px 1fr;min-height:112px}
+body[data-photo-size="list"] .thumb{width:92px;height:112px;aspect-ratio:auto}
+body[data-photo-size="list"] .cardbody{display:flex;flex-direction:column;justify-content:center;padding:12px}
+body[data-photo-size="list"] .fav{right:9px;top:9px}
+body[data-photo-size="tiny"] .cardbody{padding:4px}
+body[data-photo-size="tiny"] .name{font-size:9px}
+body[data-photo-size="tiny"] .meta,body[data-photo-size="tiny"] .tags{display:none}
+body[data-photo-size="tiny"] .fav{width:24px;height:24px;font-size:13px;right:4px;top:4px}
+body[data-photo-size="tiny"] .check{width:15px;height:15px;left:5px;top:5px}
+body[data-photo-size="tiny"] .card{border-radius:10px}
+body[data-photo-size="small"] .cardbody{padding:7px}
+body[data-photo-size="small"] .name{font-size:12px}
+body[data-photo-size="small"] .meta{font-size:10px;margin-top:3px}
+body[data-photo-size="small"] .tag{font-size:9px;padding:3px 5px}
+body[data-photo-size="small"] .fav{width:30px;height:30px;font-size:16px}
+body[data-photo-size="small"] .check{width:18px;height:18px}
+.card{position:relative;background:white;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 6px 18px rgba(67,42,98,.06)}
+.card.selected-card{outline:3px solid var(--accent);outline-offset:-3px}.card.selected-card::after{content:"✓";position:absolute;inset:0;background:rgba(92,62,177,.13);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:900;color:white;pointer-events:none;text-shadow:0 2px 8px rgba(0,0,0,.45)}
+.thumb{aspect-ratio:4/5;background:#eee;display:block;width:100%;object-fit:cover}
+.cardbody{padding:11px}
+.name{font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{font-size:12px;color:var(--muted);margin-top:5px;min-height:18px}
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.tag{font-size:11px;background:#f2edfb;border-radius:999px;padding:4px 7px}
+.fav{position:absolute;right:9px;top:9px;border:0;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.88);font-size:20px}
+.view-photo{position:absolute;right:9px;bottom:74px;border:0;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.9);font-size:19px;box-shadow:0 4px 12px rgba(0,0,0,.16)}
+.lightbox-dialog{max-width:none;width:100vw;height:100dvh;border-radius:0;background:#0d0b12;color:white}
+.lightbox{height:100%;display:grid;grid-template-rows:auto 1fr auto;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));gap:10px}
+.lightbox-top,.lightbox-bottom{display:flex;align-items:center;gap:8px}.lightbox-title{min-width:0;flex:1;text-align:center;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lightbox-stage{position:relative;display:flex;align-items:center;justify-content:center;min-height:0;overflow:hidden}.lightbox-img{max-width:100%;max-height:100%;object-fit:contain;user-select:none}.nav-photo{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:58px;border:0;border-radius:14px;background:rgba(255,255,255,.18);color:white;font-size:28px}.nav-photo.prev{left:4px}.nav-photo.next{right:4px}.lightbox-meta{flex:1;color:#c9c2d2;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lightbox .btn{white-space:nowrap}
+body[data-photo-size="tiny"] .view-photo{width:28px;height:28px;font-size:14px;right:4px;bottom:44px}
+body[data-photo-size="list"] .view-photo{bottom:8px;right:8px}
+.check{position:absolute;left:10px;top:10px;width:22px;height:22px;accent-color:var(--accent)}
+.empty{text-align:center;color:var(--muted);padding:55px 20px;border:1px dashed var(--line);border-radius:20px;background:rgba(255,255,255,.6)}
+.member-section{margin:0 0 28px}.member-head{display:flex;align-items:center;gap:10px;margin:0 0 11px;padding:0 3px}.member-head h2{margin:0;font-size:21px}.member-count{font-size:12px;color:var(--muted);background:white;border:1px solid var(--line);border-radius:999px;padding:5px 9px}.member-section.empty-group{opacity:.65}.member-divider{height:1px;background:linear-gradient(90deg,var(--line),transparent);margin:5px 0 18px}
+.member-picker{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px}.member-option{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 13px;font-weight:750;color:var(--ink);touch-action:manipulation;user-select:none}.member-option.selected{background:#eee8fa;border-color:var(--accent);color:#5c3eb1;box-shadow:0 0 0 2px rgba(138,110,232,.10)}.member-option input{display:none}
+dialog{border:0;border-radius:22px;padding:0;max-width:720px;width:calc(100% - 24px);box-shadow:0 25px 80px rgba(0,0,0,.25)}
+dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
+.modal{padding:20px}
+.modal h2{margin:0 0 15px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.full{grid-column:1/-1}
+.preview{max-height:330px;width:100%;object-fit:contain;background:#eee;border-radius:16px}
+.import-list{max-height:310px;overflow:auto;display:grid;gap:8px;margin-top:12px}.import-row{display:grid;grid-template-columns:54px 1fr;gap:9px;align-items:center;background:#faf8fd;border:1px solid var(--line);border-radius:14px;padding:8px}.import-row img{width:54px;height:66px;object-fit:cover;border-radius:9px}.import-row input{padding:9px}.hint{font-size:12px;color:var(--muted);margin-top:5px}
+.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:15px;flex-wrap:wrap}
+.bulk{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:15;background:#211a30;color:white;border-radius:18px;padding:10px;display:none;gap:8px;box-shadow:var(--shadow);align-items:center;flex-wrap:wrap;justify-content:center;width:max-content;max-width:calc(100vw - 20px)}
+.bulk .member-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.bulk .member-btn{padding:8px 11px;background:#fff;color:#241c35;border:2px solid transparent;position:relative;z-index:2;pointer-events:auto;touch-action:manipulation}.bulk .member-btn.active{background:#8a6ee8!important;color:#fff!important;border-color:#c9baff!important;box-shadow:0 0 0 3px rgba(138,110,232,.25);transform:translateY(-1px)}
+@media(max-width:760px){.bulk{bottom:10px;padding:8px}.bulk .member-btn{padding:7px 9px;font-size:12px}.bulk> b{width:100%;text-align:center}}
+.bulk.show{display:flex}
+.small{font-size:12px;color:var(--muted)}
+
+.duplicate-list{display:grid;gap:14px;max-height:62vh;overflow:auto;padding-right:3px}
+.duplicate-group{border:1px solid var(--line);border-radius:16px;padding:12px;background:#faf8ff}
+.duplicate-group h3{margin:0 0 9px;font-size:14px}
+.duplicate-row{display:grid;grid-template-columns:26px 64px 1fr;gap:9px;align-items:center;background:white;border:1px solid var(--line);border-radius:12px;padding:7px;margin-top:7px}
+.duplicate-row img{width:64px;height:64px;object-fit:cover;border-radius:9px;background:#eee}
+.duplicate-row .keep{font-size:11px;color:#4f8b5d;font-weight:800}
+.duplicate-empty{text-align:center;padding:35px 12px;color:var(--muted)}
+@media(max-width:760px){
+ .hero{grid-template-columns:1fr;padding:14px;border-radius:18px;gap:10px}.hero h1{font-size:28px}.hero p{font-size:14px}.drop{min-height:82px;padding:10px}.controls{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 0}.controls .search{grid-column:span 2}.controls .field{font-size:12px;padding:9px 6px}
+ .formgrid{grid-template-columns:1fr}.full{grid-column:auto}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ body[data-photo-size="tiny"] .grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:3px}
+ body[data-photo-size="small"] .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+ body[data-photo-size="normal"] .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+ body[data-photo-size="large"] .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ body[data-photo-size="small"] .cardbody{padding:5px}
+ body[data-photo-size="small"] .meta,body[data-photo-size="small"] .tags{display:none}
+ body[data-photo-size="small"] .name{font-size:10px}
+ body[data-photo-size="list"] .card{grid-template-columns:78px 1fr;min-height:98px}
+ body[data-photo-size="list"] .thumb{width:78px;height:98px}
+ .cardbody{padding:9px}.top{padding:11px 13px}main{padding:14px 10px 90px}
+}
+</style>
+</head>
+<body>
+<header>
+ <div class="top">
+  <div><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE</div></div>
+  <div class="spacer"></div>
+  <button class="btn" id="homeBtn" title="전체 화면으로 돌아가기">⌂ 홈</button>
+  <button class="btn install" id="installBtn" hidden>앱 설치</button>
+  <button class="btn" id="duplicateBtn">중복 정리</button>
+  <button class="btn" id="backupBtn">전체 백업</button>
+  <button class="btn" id="restoreBtn">복원</button>
+  <button class="btn" id="exportBtn">목록 CSV</button>
+  <button class="btn primary" id="addBtn">＋ 사진 추가</button>
+  <input id="fileInput" type="file" accept="image/*" multiple hidden>
+  <input id="restoreInput" type="file" accept="application/zip,.zip,application/json,.json" hidden>
+ </div>
+</header>
+
+<main>
+ <section class="hero">
+  <div>
+   <h1>리센느 사진을<br>내 방식대로 정리해요.</h1>
+   <p>멤버·날짜·활동·태그·최애 표시까지. 사진은 외부 서버로 전송되지 않습니다.</p><p class="small" style="color:#d9ccec;margin-top:10px"><span class="status-dot"></span><span id="appStatus">기기 내부 저장 · 오프라인 사용 가능</span></p>
+  </div>
+  <div class="drop" id="dropZone">
+   <div><b>사진을 여기에 끌어놓기</b><br><span class="small" style="color:#ddd">또는 눌러서 여러 장 선택</span></div>
+  </div>
+ </section>
+
+ <div class="controls">
+  <input class="field search" id="search" placeholder="파일명, 활동, 태그, 메모 검색">
+  <select class="field" id="sort">
+   <option value="new">최근 추가순</option><option value="old">오래된순</option>
+   <option value="dateDesc">촬영일 최신순</option><option value="name">이름순</option>
+  </select>
+  <select class="field" id="activityFilter"><option value="">모든 활동</option></select>
+  <select class="field" id="favFilter"><option value="">전체 사진</option><option value="fav">★ 최애만</option><option value="untagged">미분류만</option></select>
+  <select class="field" id="photoSize"><option value="tiny">매우 작게</option><option value="small">작게</option><option value="normal">보통</option><option value="large">크게</option><option value="list">리스트</option></select>
+  <select class="field" id="viewMode"><option value="grid">전체 그리드</option><option value="member">멤버별 나누기</option></select>
+  <input class="field" type="date" id="dateFilter" aria-label="촬영일 검색" title="촬영일 검색">
+ </div>
+
+ <div class="members" id="memberChips"></div>
+ <div class="stats" id="stats"></div>
+ <div id="gallery"></div>
+</main>
+
+<div class="bulk" id="bulkBar">
+ <b id="selectedCount">0장 선택</b>
+ <div class="member-actions" id="bulkMemberButtons" aria-label="선택 사진 멤버 분류"></div>
+ <button class="btn primary" id="bulkApplyMembers">멤버 적용</button>
+ <button class="btn danger" id="bulkDelete">삭제</button>
+ <button class="btn" id="clearSelect">취소</button>
+</div>
+
+<dialog id="importDialog">
+ <div class="modal">
+  <h2>추가하면서 바로 분류</h2>
+  <div class="formgrid">
+   <div><b>멤버 (여러 명 선택 가능)</b><div class="member-picker" id="importMembers"></div></div>
+   <label>촬영일<input class="field" type="date" id="importDate"></label>
+   <label>활동 / 앨범<input class="field" id="importActivity" placeholder="예: Glow Up, 팬사인회"></label>
+   <label>출처<input class="field" id="importSource" placeholder="예: X, 인스타"></label>
+   <label class="full">공통 태그<input class="field" id="importTags" placeholder="쉼표로 구분"></label>
+   <label class="full">제목 자동 만들기<input class="field" id="titlePattern" placeholder="예: 메이_공항 (여러 장이면 _01, _02 자동 추가)"></label>
+  </div>
+  <div class="hint">아래에서 사진별 제목을 직접 고칠 수도 있습니다.</div>
+  <div class="import-list" id="importList"></div>
+  <div class="actions">
+   <button class="btn" id="cancelImport">취소</button>
+   <button class="btn primary" id="saveImport">분류해서 저장</button>
+  </div>
+ </div>
+</dialog>
+
+<dialog id="duplicateDialog">
+ <div class="modal">
+  <h2>중복 사진 정리</h2>
+  <div class="hint">사진 내용이 완전히 같은 파일을 찾습니다. 파일명이나 제목이 달라도 탐지됩니다.</div>
+  <div id="duplicateStatus" class="hint">검사 준비 중</div>
+  <div class="duplicate-list" id="duplicateList"></div>
+  <div class="actions">
+   <button class="btn" id="closeDuplicate">닫기</button>
+   <button class="btn danger" id="deleteDuplicates">선택한 중복 삭제</button>
+  </div>
+ </div>
+</dialog>
+
+<dialog id="lightboxDialog" class="lightbox-dialog">
+ <div class="lightbox">
+  <div class="lightbox-top">
+   <button class="btn" id="closeLightbox">닫기</button>
+   <div class="lightbox-title" id="lightboxTitle"></div>
+   <button class="btn primary" id="downloadPhoto">다운로드</button>
+  </div>
+  <div class="lightbox-stage">
+   <button class="nav-photo prev" id="prevPhoto" aria-label="이전 사진">‹</button>
+   <img id="lightboxImage" class="lightbox-img" alt="크게 보기">
+   <button class="nav-photo next" id="nextPhoto" aria-label="다음 사진">›</button>
+  </div>
+  <div class="lightbox-bottom">
+   <div class="lightbox-meta" id="lightboxMeta"></div>
+   <button class="btn" id="editFromLightbox">정보 수정</button>
+  </div>
+ </div>
+</dialog>
+
+<dialog id="editDialog">
+ <div class="modal">
+  <h2>사진 정보</h2>
+  <img id="modalPreview" class="preview">
+  <div class="formgrid" style="margin-top:14px">
+   <label class="full">제목<input class="field" id="editTitle" placeholder="사진 제목"></label>
+   <div><b>멤버 (여러 명 선택 가능)</b><div class="member-picker" id="editMembers"></div></div>
+   <label>촬영일<input class="field" type="date" id="editDate"></label>
+   <label>활동 / 앨범<input class="field" id="editActivity" placeholder="예: lip bomb, 팬사인회"></label>
+   <label>출처<input class="field" id="editSource" placeholder="예: X, 인스타, 공식카페"></label>
+   <label class="full">태그<input class="field" id="editTags" placeholder="쉼표로 구분: 정원이, 셀카, 금발"></label>
+   <label class="full">메모<textarea class="field" id="editNote" rows="3"></textarea></label>
+  </div>
+  <div class="actions">
+   <button class="btn danger" id="deleteOne">삭제</button>
+   <button class="btn" id="closeDialog">닫기</button>
+   <button class="btn primary" id="saveEdit">저장</button>
+  </div>
+ </div>
+</dialog>
+
+<script>
+const MEMBERS=["원이","미나미","리브","메이","제나"];
+const ASSIGNABLE=[...MEMBERS,"기타"];
+const MEMBER_FILTERS=["미분류",...ASSIGNABLE,"단체"];
+function getMembers(x){
+ if(Array.isArray(x.members))return x.members.filter(m=>ASSIGNABLE.includes(m));
+ if(x.member && ASSIGNABLE.includes(x.member))return [x.member];
+ return [];
+}
+function isGroup(x){return x.group===true || x.member==="단체" || (Array.isArray(x.members)&&x.members.includes("단체"));}
+function memberLabels(x){return isGroup(x)?[...MEMBERS]:getMembers(x)}
+function memberText(x){return isGroup(x)?"단체":(getMembers(x).join(" · ")||"미분류")}
+function memberMatches(x,m){if(!m)return true;if(m==="단체")return isGroup(x);if(m==="미분류")return !isGroup(x)&&getMembers(x).length===0;if(m==="기타")return !isGroup(x)&&getMembers(x).includes("기타");return isGroup(x)||getMembers(x).includes(m)}
+function pickerHTML(prefix,selected=[],group=false){return [...ASSIGNABLE,"단체"].map(m=>{const checked=group?m==="단체":selected.includes(m);return `<button type="button" class="member-option ${checked?"selected":""}" data-picker="${prefix}" data-member="${m}" aria-pressed="${checked}">${m}<input type="checkbox" name="${prefix}" value="${m}" ${checked?"checked":""}></button>`}).join("")}
+function readPicker(prefix){const vals=[...document.querySelectorAll(`input[name="${prefix}"]:checked`)].map(x=>x.value);return {group:vals.includes("단체"),members:vals.filter(m=>ASSIGNABLE.includes(m))}}
+function togglePickerButton(btn){
+ const prefix=btn.dataset.picker, member=btn.dataset.member, input=btn.querySelector("input");
+ if(!prefix||!member||!input)return;
+ const wrap=btn.parentElement;
+ if(member==="단체"){
+  const next=!input.checked;
+  wrap.querySelectorAll(".member-option").forEach(b=>{const i=b.querySelector("input");i.checked=false;b.classList.remove("selected");b.setAttribute("aria-pressed","false")});
+  if(next){input.checked=true;btn.classList.add("selected");btn.setAttribute("aria-pressed","true")}
+ }else{
+  const groupBtn=wrap.querySelector(`.member-option[data-member="단체"]`);
+  if(groupBtn){const gi=groupBtn.querySelector("input");gi.checked=false;groupBtn.classList.remove("selected");groupBtn.setAttribute("aria-pressed","false")}
+  input.checked=!input.checked;btn.classList.toggle("selected",input.checked);btn.setAttribute("aria-pressed",String(input.checked));
+ }
+}
+const DB_NAME="scene-box-db", STORE="photos";
+let db, items=[], memberFilter="", editingId=null, selected=new Set(), pendingFiles=[];
+
+function openDB(){
+ return new Promise((resolve,reject)=>{
+  const req=indexedDB.open(DB_NAME,1);
+  req.onupgradeneeded=()=>{const d=req.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:"id"})};
+  req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error);
+ });
+}
+function tx(mode="readonly"){return db.transaction(STORE,mode).objectStore(STORE)}
+function reqP(req){return new Promise((res,rej)=>{req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)})}
+async function load(){items=await reqP(tx().getAll());render()}
+async function put(item){await reqP(tx("readwrite").put(item))}
+async function del(id){await reqP(tx("readwrite").delete(id))}
+const uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random();
+async function sha256(blob){
+ const buf=await blob.arrayBuffer();
+ const hash=await crypto.subtle.digest("SHA-256",buf);
+ return [...new Uint8Array(hash)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+async function ensureHashes(onProgress){
+ for(let i=0;i<items.length;i++){
+  const x=items[i];
+  if(!x.hash){x.hash=await sha256(x.blob);await put(x)}
+  if(onProgress)onProgress(i+1,items.length);
+ }
+}
+
+function baseName(name){return name.replace(/\.[^/.]+$/,"")}
+function openImport(files){
+ pendingFiles=[...files].filter(f=>f.type.startsWith("image/"));
+ if(!pendingFiles.length)return;
+ importList.innerHTML=pendingFiles.map((f,i)=>`<div class="import-row"><img src="${objectURL(f)}"><div><input class="field import-title" data-i="${i}" value="${esc(baseName(f.name))}" aria-label="사진 제목"><div class="small">${esc(f.name)}</div></div></div>`).join("");
+ importMembers.innerHTML=pickerHTML("importMember",MEMBERS.includes(memberFilter)?[memberFilter]:[],memberFilter==="단체"); importDate.value=""; importActivity.value=""; importSource.value=""; importTags.value=""; titlePattern.value="";
+ importDialog.showModal();
+}
+function applyTitlePattern(){
+ const pattern=titlePattern.value.trim(); if(!pattern)return;
+ document.querySelectorAll(".import-title").forEach((el,i)=>{el.value=pendingFiles.length>1?`${pattern}_${String(i+1).padStart(2,"0")}`:pattern});
+}
+async function savePendingFiles(){
+ const titles=[...document.querySelectorAll(".import-title")].map(x=>x.value.trim());
+ const tags=importTags.value.split(",").map(v=>v.trim()).filter(Boolean);
+ const chosen=readPicker("importMember");
+ saveImport.disabled=true; saveImport.textContent="중복 확인 중…";
+ try{
+  await ensureHashes();
+  const known=new Set(items.map(x=>x.hash).filter(Boolean));
+  let skipped=0, saved=0;
+  for(let i=0;i<pendingFiles.length;i++){
+   const f=pendingFiles[i], hash=await sha256(f);
+   if(known.has(hash)){skipped++;continue}
+   known.add(hash);
+   await put({id:uid(),name:titles[i]||baseName(f.name),originalName:f.name,blob:f,hash,members:chosen.members,group:chosen.group,member:chosen.group?"단체":(chosen.members[0]||"미분류"),date:importDate.value,activity:importActivity.value.trim(),source:importSource.value.trim(),tags,note:"",fav:false,addedAt:Date.now()+i});
+   saved++;
+  }
+  pendingFiles=[]; importDialog.close(); fileInput.value=""; await load();
+  if(skipped)alert(`새 사진 ${saved}장을 저장하고, 완전히 같은 중복 사진 ${skipped}장은 건너뛰었습니다.`);
+ }finally{saveImport.disabled=false;saveImport.textContent="분류해서 저장"}
+}
+
+function objectURL(blob){return URL.createObjectURL(blob)}
+function esc(s=""){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+
+function filtered(){
+ const q=document.querySelector("#search").value.trim().toLowerCase();
+ const af=document.querySelector("#activityFilter").value;
+ const ff=document.querySelector("#favFilter").value;
+ const df=document.querySelector("#dateFilter").value;
+ let arr=items.filter(x=>{
+  const hay=[x.name,memberText(x),...memberLabels(x),x.activity,x.source,x.note,...(x.tags||[])].join(" ").toLowerCase();
+  return (!q||hay.includes(q)) && memberMatches(x,memberFilter) && (!af||x.activity===af)
+   && (!df||x.date===df)
+   && (!ff||(ff==="fav"?x.fav: !isGroup(x)&&getMembers(x).length===0 && !x.activity && !(x.tags||[]).length));
+ });
+ const s=document.querySelector("#sort").value;
+ arr.sort((a,b)=>s==="old"?a.addedAt-b.addedAt:s==="dateDesc"?(b.date||"").localeCompare(a.date||""):s==="name"?a.name.localeCompare(b.name):b.addedAt-a.addedAt);
+ return arr;
+}
+
+function render(){
+ const acts=[...new Set(items.map(x=>x.activity).filter(Boolean))].sort();
+ const af=document.querySelector("#activityFilter"), prev=af.value;
+ af.innerHTML='<option value="">모든 활동</option>'+acts.map(a=>`<option>${esc(a)}</option>`).join("");
+ if(acts.includes(prev))af.value=prev;
+
+ document.querySelector("#memberChips").innerHTML=
+  `<button class="chip ${memberFilter===""?"active":""}" data-m="">전체</button>`+
+  MEMBER_FILTERS.map(m=>`<button class="chip ${memberFilter===m?"active":""}" data-m="${m}">${m}</button>`).join("");
+
+ const arr=filtered(), favs=items.filter(x=>x.fav).length, un=items.filter(x=>!isGroup(x)&&getMembers(x).length===0).length;
+ document.querySelector("#stats").innerHTML=`<div class="stat">전체 <b>${items.length}</b></div><div class="stat">현재 보기 <b>${arr.length}</b></div><div class="stat">최애 <b>${favs}</b></div><div class="stat">미분류 <b>${un}</b></div>`;
+ const g=document.querySelector("#gallery");
+ if(!arr.length){g.innerHTML=`<div class="empty">${items.length?"조건에 맞는 사진이 없습니다.":"사진을 추가하면 여기에 예쁘게 정리됩니다."}</div>`;return}
+ const cardHTML=x=>`
+  <article class="card ${selected.has(x.id)?"selected-card":""}" data-id="${x.id}">
+   <input class="check" type="checkbox" ${selected.has(x.id)?"checked":""} aria-label="선택">
+   <button class="fav" aria-label="최애">${x.fav?"★":"☆"}</button>
+   <button class="view-photo" aria-label="크게 보기">⛶</button>
+   <img class="thumb" src="${objectURL(x.blob)}" alt="${esc(x.name)}">
+   <div class="cardbody">
+    <div class="name">${esc(x.name)}</div>
+    <div class="meta">${esc([memberText(x),x.date,x.activity].filter(Boolean).join(" · ")||"미분류")}</div>
+    <div class="tags">${(x.tags||[]).slice(0,4).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
+   </div>
+  </article>`;
+ if(document.querySelector("#viewMode").value==="member"){
+  const order=MEMBER_FILTERS.filter(m=>!memberFilter||m===memberFilter);
+  g.innerHTML=order.map(m=>{
+   const group=arr.filter(x=>memberMatches(x,m));
+   if(!group.length)return "";
+   return `<section class="member-section"><div class="member-head"><h2>${esc(m)}</h2><span class="member-count">${group.length}장</span></div><div class="grid">${group.map(cardHTML).join("")}</div><div class="member-divider"></div></section>`;
+  }).join("");
+ }else{
+  g.innerHTML=`<div class="grid">${arr.map(cardHTML).join("")}</div>`;
+ }
+ updateBulk();
+}
+
+function updateBulk(){
+ document.querySelector("#selectedCount").textContent=`${selected.size}장 선택`;
+ document.querySelector("#bulkBar").classList.toggle("show",selected.size>0);
+}
+
+let lightboxId=null;
+function lightboxItems(){return filtered()}
+function showLightbox(id){
+ const x=items.find(v=>v.id===id);if(!x)return;lightboxId=id;
+ lightboxImage.src=objectURL(x.blob);
+ lightboxTitle.textContent=x.name||x.originalName||"사진";
+ lightboxMeta.textContent=[memberText(x),x.date,x.activity,x.originalName].filter(Boolean).join(" · ");
+ const arr=lightboxItems(), idx=arr.findIndex(v=>v.id===id);
+ prevPhoto.disabled=arr.length<2;nextPhoto.disabled=arr.length<2;
+ if(!lightboxDialog.open)lightboxDialog.showModal();
+}
+function moveLightbox(step){
+ const arr=lightboxItems();if(!arr.length)return;
+ let idx=arr.findIndex(v=>v.id===lightboxId);idx=(idx+step+arr.length)%arr.length;showLightbox(arr[idx].id);
+}
+function safeDownloadName(x){
+ const ext=((x.originalName||"").match(/\.[a-zA-Z0-9]+$/)||[""])[0] || ({"image/jpeg":".jpg","image/png":".png","image/webp":".webp","image/gif":".gif"}[x.blob.type]||"");
+ const base=(x.name||"scene-box-photo").replace(/[\/:*?"<>|]/g,"_").trim()||"scene-box-photo";return base+ext;
+}
+function downloadOne(id){
+ const x=items.find(v=>v.id===id);if(!x)return;const a=document.createElement("a");const url=objectURL(x.blob);a.href=url;a.download=safeDownloadName(x);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+function openEdit(id){
+ const x=items.find(v=>v.id===id); if(!x)return; editingId=id;
+ document.querySelector("#modalPreview").src=objectURL(x.blob);
+ document.querySelector("#editTitle").value=x.name||baseName(x.originalName||"");
+ document.querySelector("#editMembers").innerHTML=pickerHTML("editMember",getMembers(x),isGroup(x));
+ document.querySelector("#editDate").value=x.date||"";
+ document.querySelector("#editActivity").value=x.activity||"";
+ document.querySelector("#editSource").value=x.source||"";
+ document.querySelector("#editTags").value=(x.tags||[]).join(", ");
+ document.querySelector("#editNote").value=x.note||"";
+ document.querySelector("#editDialog").showModal();
+}
+
+document.querySelector("#addBtn").onclick=()=>document.querySelector("#fileInput").click();
+document.querySelector("#dropZone").onclick=()=>document.querySelector("#fileInput").click();
+document.querySelector("#fileInput").onchange=e=>openImport(e.target.files);
+["dragenter","dragover"].forEach(ev=>dropZone.addEventListener(ev,e=>{e.preventDefault();dropZone.classList.add("drag")}));
+["dragleave","drop"].forEach(ev=>dropZone.addEventListener(ev,e=>{e.preventDefault();dropZone.classList.remove("drag")}));
+dropZone.addEventListener("drop",e=>openImport(e.dataTransfer.files));
+
+titlePattern.addEventListener("input",applyTitlePattern);
+cancelImport.onclick=()=>{pendingFiles=[];fileInput.value="";importDialog.close()};
+saveImport.onclick=savePendingFiles;
+document.addEventListener("click",e=>{
+ const btn=e.target.closest(".member-option[data-picker]");
+ if(!btn)return;
+ e.preventDefault();e.stopPropagation();togglePickerButton(btn);
+});
+
+function toggleCardSelection(id){
+ selected.has(id)?selected.delete(id):selected.add(id);
+ render();
+}
+let suppressCardClickUntil=0;
+let longPressTimer=null,longPressCard=null,longPressStartX=0,longPressStartY=0;
+document.addEventListener("pointerdown",e=>{
+ const card=e.target.closest(".card");
+ if(!card||e.target.closest("button,input"))return;
+ longPressCard=card;longPressStartX=e.clientX;longPressStartY=e.clientY;
+ longPressTimer=setTimeout(()=>{
+  const id=card.dataset.id;toggleCardSelection(id);suppressCardClickUntil=Date.now()+700;
+  if(navigator.vibrate)navigator.vibrate(35);
+  longPressTimer=null;
+ },520);
+});
+document.addEventListener("pointermove",e=>{if(longPressTimer&&Math.hypot(e.clientX-longPressStartX,e.clientY-longPressStartY)>12){clearTimeout(longPressTimer);longPressTimer=null}});
+["pointerup","pointercancel"].forEach(ev=>document.addEventListener(ev,()=>{if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null}longPressCard=null}));
+
+document.body.addEventListener("click",async e=>{
+ const chip=e.target.closest(".chip"); if(chip){memberFilter=chip.dataset.m;render();return}
+ const card=e.target.closest(".card"); if(!card)return;
+ const id=card.dataset.id, x=items.find(v=>v.id===id);
+ if(Date.now()<suppressCardClickUntil){e.preventDefault();return}
+ if(selected.size>0){e.preventDefault();toggleCardSelection(id);return}
+ if(e.target.closest(".fav")){x.fav=!x.fav;await put(x);await load();return}
+ if(e.target.matches(".check")){e.target.checked?selected.add(id):selected.delete(id);render();return}
+ if(e.target.closest(".view-photo")||e.target.matches(".thumb")){showLightbox(id);return}
+ openEdit(id);
+});
+["search","sort","activityFilter","favFilter","viewMode","dateFilter"].forEach(id=>document.querySelector("#"+id).addEventListener(id==="search"?"input":"change",render));
+document.querySelector("#photoSize").addEventListener("change",e=>{document.body.dataset.photoSize=e.target.value;localStorage.setItem("sceneBoxPhotoSize",e.target.value);});
+closeLightbox.onclick=()=>lightboxDialog.close();
+prevPhoto.onclick=()=>moveLightbox(-1);
+nextPhoto.onclick=()=>moveLightbox(1);
+downloadPhoto.onclick=()=>downloadOne(lightboxId);
+editFromLightbox.onclick=()=>{const id=lightboxId;lightboxDialog.close();openEdit(id)};
+lightboxDialog.addEventListener("keydown",e=>{if(e.key==="ArrowLeft")moveLightbox(-1);if(e.key==="ArrowRight")moveLightbox(1)});
+document.querySelector("#closeDialog").onclick=()=>editDialog.close();
+document.querySelector("#saveEdit").onclick=async()=>{
+ const x=items.find(v=>v.id===editingId);
+ const chosen=readPicker("editMember");
+ Object.assign(x,{
+  name:editTitle.value.trim()||x.name,
+  members:chosen.members,group:chosen.group,member:chosen.group?"단체":(chosen.members[0]||"미분류"),date:editDate.value,activity:editActivity.value.trim(),source:editSource.value.trim(),
+  tags:editTags.value.split(",").map(v=>v.trim()).filter(Boolean),note:editNote.value.trim()
+ });
+ await put(x);editDialog.close();await load();
+};
+document.querySelector("#deleteOne").onclick=async()=>{
+ if(!confirm("이 사진을 목록에서 삭제할까요? 원본 파일은 삭제되지 않습니다."))return;
+ await del(editingId);editDialog.close();await load();
+};
+document.querySelector("#clearSelect").onclick=()=>{selected.clear();bulkChosenMembers.clear();updateBulkMemberButtons();render()};
+document.querySelector("#bulkDelete").onclick=async()=>{
+ if(!confirm(`${selected.size}장을 목록에서 삭제할까요?`))return;
+ for(const id of selected)await del(id);selected.clear();await load();
+};
+let bulkChosenMembers=new Set();
+document.querySelector("#bulkMemberButtons").innerHTML=[...ASSIGNABLE,"단체"].map(m=>`<button class="btn member-btn" type="button" data-bulk-member="${m}">${m}</button>`).join("");
+function updateBulkMemberButtons(){
+ document.querySelectorAll("[data-bulk-member]").forEach(b=>{
+  const on=bulkChosenMembers.has(b.dataset.bulkMember);
+  b.classList.toggle("active",on);
+  b.setAttribute("aria-pressed",on?"true":"false");
+ });
+}
+function chooseBulkMember(btn){
+ if(!btn||!selected.size)return;
+ const m=btn.dataset.bulkMember;
+ if(m==="단체"){
+  const wasOn=bulkChosenMembers.has("단체");
+  bulkChosenMembers.clear();
+  if(!wasOn)bulkChosenMembers.add("단체");
+ }else{
+  bulkChosenMembers.delete("단체");
+  bulkChosenMembers.has(m)?bulkChosenMembers.delete(m):bulkChosenMembers.add(m);
+ }
+ updateBulkMemberButtons();
+}
+document.querySelector("#bulkMemberButtons").addEventListener("click",e=>{
+ e.preventDefault();e.stopPropagation();
+ chooseBulkMember(e.target.closest("[data-bulk-member]"));
+});
+document.querySelector("#bulkApplyMembers").onclick=async()=>{
+ if(!selected.size)return;
+ if(!bulkChosenMembers.size)return alert("멤버를 한 명 이상 선택해주세요.");
+ const group=bulkChosenMembers.has("단체"), members=[...bulkChosenMembers].filter(m=>ASSIGNABLE.includes(m));
+ for(const id of selected){const x=items.find(v=>v.id===id);if(x){x.group=group;x.members=members;x.member=group?"단체":(members[0]||"미분류");await put(x)}}
+ selected.clear();bulkChosenMembers.clear();updateBulkMemberButtons();await load();
+};
+
+let duplicateGroups=[];
+function formatBytes(n){if(!n)return "0 B";const u=["B","KB","MB","GB"];let i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}return `${n.toFixed(i?1:0)} ${u[i]}`}
+async function openDuplicateManager(){
+ duplicateDialog.showModal(); duplicateList.innerHTML=""; duplicateStatus.textContent="사진 내용을 검사하고 있습니다…"; deleteDuplicates.disabled=true;
+ await ensureHashes((done,total)=>duplicateStatus.textContent=`검사 중 ${done}/${total}`);
+ const map=new Map();
+ for(const x of items){if(!map.has(x.hash))map.set(x.hash,[]);map.get(x.hash).push(x)}
+ duplicateGroups=[...map.values()].filter(g=>g.length>1).map(g=>g.sort((a,b)=>(b.fav-a.fav)||(a.addedAt-b.addedAt)));
+ const duplicateCount=duplicateGroups.reduce((n,g)=>n+g.length-1,0);
+ duplicateStatus.textContent=duplicateCount?`${duplicateGroups.length}개 묶음에서 삭제 가능한 중복 ${duplicateCount}장을 찾았습니다.`:"중복 사진이 없습니다.";
+ if(!duplicateGroups.length){duplicateList.innerHTML='<div class="duplicate-empty">완전히 동일한 사진이 없습니다.</div>';return}
+ duplicateList.innerHTML=duplicateGroups.map((g,gi)=>`<section class="duplicate-group"><h3>중복 묶음 ${gi+1} · ${g.length}장</h3>${g.map((x,i)=>`<label class="duplicate-row"><input type="checkbox" class="duplicate-check" value="${x.id}" ${i?"checked":""} ${i===0?"disabled":""}><img src="${objectURL(x.blob)}"><div><b>${esc(x.name)}</b><div class="small">${esc(memberText(x))} · ${formatBytes(x.blob.size)} · ${esc(x.originalName||"")}</div>${i===0?'<div class="keep">유지 추천</div>':''}</div></label>`).join("")}</section>`).join("");
+ deleteDuplicates.disabled=false;
+}
+duplicateBtn.onclick=openDuplicateManager;
+closeDuplicate.onclick=()=>duplicateDialog.close();
+deleteDuplicates.onclick=async()=>{
+ const ids=[...document.querySelectorAll(".duplicate-check:checked")].map(x=>x.value);
+ if(!ids.length)return alert("삭제할 중복 사진을 선택해주세요.");
+ if(!confirm(`선택한 중복 사진 ${ids.length}장을 삭제할까요?`))return;
+ for(const id of ids)await del(id);
+ await load(); duplicateDialog.close(); alert(`${ids.length}장을 삭제했습니다.`);
+};
+
+let deferredInstallPrompt=null;
+window.addEventListener("beforeinstallprompt",e=>{
+ e.preventDefault();deferredInstallPrompt=e;installBtn.hidden=false;
+});
+installBtn.onclick=async()=>{
+ if(!deferredInstallPrompt)return alert("브라우저 메뉴에서 ‘홈 화면에 추가’ 또는 ‘앱 설치’를 선택해주세요.");
+ deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;installBtn.hidden=true;
+};
+window.addEventListener("appinstalled",()=>{installBtn.hidden=true;appStatus.textContent="앱으로 설치됨 · 기기 내부 저장"});
+
+function downloadBlob(blob,name){
+ const a=document.createElement("a");const url=URL.createObjectURL(blob);a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+function crc32(bytes){
+ let c=0xffffffff;for(const b of bytes){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0)}return (c^0xffffffff)>>>0;
+}
+function u16(n){return new Uint8Array([n&255,(n>>>8)&255])}
+function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255])}
+function concatBytes(parts){const len=parts.reduce((n,p)=>n+p.length,0),out=new Uint8Array(len);let o=0;for(const p of parts){out.set(p,o);o+=p.length}return out}
+function safeZipName(name){return String(name||"photo").replace(/[\\/:*?"<>|\x00-\x1f]/g,"_").slice(0,120)}
+async function makeZip(entries){
+ const enc=new TextEncoder(),locals=[],centrals=[];let offset=0;
+ for(const ent of entries){
+  const name=enc.encode(ent.name),data=ent.data instanceof Uint8Array?ent.data:new Uint8Array(ent.data),crc=crc32(data);
+  const local=concatBytes([u32(0x04034b50),u16(20),u16(0x0800),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name,data]);
+  locals.push(local);
+  const central=concatBytes([u32(0x02014b50),u16(20),u16(20),u16(0x0800),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),name]);
+  centrals.push(central);offset+=local.length;
+ }
+ const cd=concatBytes(centrals),body=concatBytes(locals);
+ const end=concatBytes([u32(0x06054b50),u16(0),u16(0),u16(entries.length),u16(entries.length),u32(cd.length),u32(body.length),u16(0)]);
+ return new Blob([body,cd,end],{type:"application/zip"});
+}
+function readStoredZip(buffer){
+ const b=new Uint8Array(buffer),dec=new TextDecoder(),files=new Map();let o=0;
+ const r16=i=>b[i]|(b[i+1]<<8),r32=i=>(b[i]|(b[i+1]<<8)|(b[i+2]<<16)|(b[i+3]<<24))>>>0;
+ while(o+30<=b.length && r32(o)===0x04034b50){
+  const method=r16(o+8),size=r32(o+18),nameLen=r16(o+26),extraLen=r16(o+28),name=dec.decode(b.slice(o+30,o+30+nameLen));
+  if(method!==0)throw new Error("지원하지 않는 압축 방식입니다.");
+  const ds=o+30+nameLen+extraLen;files.set(name,b.slice(ds,ds+size));o=ds+size;
+ }
+ return files;
+}
+backupBtn.onclick=async()=>{
+ if(!items.length)return alert("백업할 사진이 없습니다.");
+ const ok=confirm("전체 백업 안내\n\n사진 원본과 제목·멤버·날짜·태그·메모를 ZIP 파일 하나에 저장합니다. 사진이 많으면 생성에 시간이 걸리고 파일 용량이 클 수 있습니다.\n\n지금 ZIP 백업을 만들까요?");
+ if(!ok)return;
+ backupBtn.disabled=true;backupBtn.textContent="ZIP 만드는 중…";
+ try{
+  const entries=[],meta=[];let n=1;
+  for(const x of items){
+   const ext=((x.originalName||x.name||"").match(/\.([a-zA-Z0-9]{1,8})$/)||[])[1]||((x.blob.type||"").split("/")[1]||"jpg");
+   const fileName=`photos/${String(n).padStart(6,"0")}_${safeZipName(x.name)}.${ext}`;
+   entries.push({name:fileName,data:await x.blob.arrayBuffer()});
+   const copy={...x,photoFile:fileName,mimeType:x.blob.type};delete copy.blob;meta.push(copy);n++;
+  }
+  const manifest={app:"SCENE BOX",version:2,format:"zip",createdAt:new Date().toISOString(),photos:meta};
+  entries.unshift({name:"backup.json",data:new TextEncoder().encode(JSON.stringify(manifest,null,2))});
+  const zip=await makeZip(entries);downloadBlob(zip,`scene-box-full-backup-${new Date().toISOString().slice(0,10)}.zip`);
+  alert("ZIP 전체 백업이 저장되었습니다. 이 파일 하나에 사진 원본과 모든 분류 정보가 들어 있습니다.");
+ }catch(err){alert("백업 중 오류가 발생했습니다: "+err.message)}finally{backupBtn.disabled=false;backupBtn.textContent="전체 백업"}
+};
+restoreBtn.onclick=()=>{
+ const ok=confirm("복원 안내\n\nSCENE BOX에서 만든 ZIP 전체 백업을 불러옵니다. 기존 사진은 유지되며 같은 ID의 항목은 백업 내용으로 덮어씁니다. 예전 JSON 백업도 복원할 수 있습니다.\n\n복원 파일을 선택할까요?");
+ if(ok)restoreInput.click();
+};
+restoreInput.onchange=async e=>{
+ const file=e.target.files[0];if(!file)return;
+ try{
+  if(file.name.toLowerCase().endsWith(".zip")||file.type==="application/zip"){
+   const files=readStoredZip(await file.arrayBuffer()),manifestBytes=files.get("backup.json");
+   if(!manifestBytes)throw new Error("backup.json이 없는 백업 파일입니다.");
+   const data=JSON.parse(new TextDecoder().decode(manifestBytes));
+   if(data.app!=="SCENE BOX"||!Array.isArray(data.photos))throw new Error("SCENE BOX 백업 파일이 아닙니다.");
+   if(!confirm(`${data.photos.length}장의 사진을 복원할까요?`))return;
+   for(const p of data.photos){const bytes=files.get(p.photoFile);if(!bytes)continue;const item={...p,blob:new Blob([bytes],{type:p.mimeType||"image/jpeg"})};delete item.photoFile;delete item.mimeType;await put(item)}
+   await load();alert("ZIP 복원이 완료되었습니다.");
+  }else{
+   const data=JSON.parse(await file.text());
+   if(data.app!=="SCENE BOX"||!Array.isArray(data.photos))throw new Error("SCENE BOX 백업 파일이 아닙니다.");
+   if(!confirm(`${data.photos.length}장의 예전 JSON 백업을 복원할까요?`))return;
+   for(const p of data.photos){const item={...p,blob:dataURLToBlob(p.blobData)};delete item.blobData;await put(item)}
+   await load();alert("JSON 복원이 완료되었습니다.");
+  }
+ }catch(err){alert("복원 실패: "+err.message)}finally{restoreInput.value=""}
+};
+function dataURLToBlob(dataURL){const [head,data]=dataURL.split(",");const mime=(head.match(/data:(.*?);/)||[])[1]||"application/octet-stream";const bin=atob(data);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime})}
+
+if("serviceWorker" in navigator){
+ window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(()=>{}));
+}
+document.querySelector("#homeBtn").onclick=()=>{
+ memberFilter="";
+ selected.clear();
+ document.querySelector("#search").value="";
+ document.querySelector("#sort").value="new";
+ document.querySelector("#activityFilter").value="";
+ document.querySelector("#favFilter").value="";
+ document.querySelector("#dateFilter").value="";
+ document.querySelector("#viewMode").value="grid";
+ updateBulk();
+ render();
+ window.scrollTo({top:0,behavior:"smooth"});
+};
+document.querySelector("#exportBtn").onclick=()=>{
+ const ok=confirm("목록 CSV 안내\n\n사진 원본은 포함하지 않고 제목·원본 파일명·멤버·날짜·활동·태그·메모 같은 목록만 표 파일로 저장합니다. 엑셀이나 구글 스프레드시트에서 열 수 있습니다.\n\nCSV 목록을 저장할까요?");
+ if(!ok)return;
+ const rows=[["제목","원본 파일명","멤버","촬영일","활동","출처","태그","메모","최애"]];
+ items.forEach(x=>rows.push([x.name,x.originalName||x.name,memberText(x),x.date,x.activity,x.source,(x.tags||[]).join("|"),x.note,x.fav?"Y":"N"]));
+ const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v||"").replaceAll('"','""')}"`).join(",")).join("\n");
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="scene-box-photo-list.csv";a.click();
+};
+
+(async()=>{
+ const savedSize=localStorage.getItem("sceneBoxPhotoSize")||"small";
+ document.querySelector("#photoSize").value=savedSize;
+ document.body.dataset.photoSize=savedSize;
+ db=await openDB();await load();
+})();
+</script>
+</body>
+</html>
