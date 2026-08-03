@@ -150,7 +150,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
   <button class="btn" id="restoreBtn">복원</button>
   <button class="btn" id="exportBtn">목록 CSV</button>
   <button class="btn primary" id="addBtn">＋ 사진 추가</button>
-  <input id="fileInput" type="file" accept="image/*" multiple hidden>
+  <input id="fileInput" type="file" accept="image/*,.gif" multiple hidden>
   <input id="restoreInput" type="file" accept="application/zip,.zip,application/json,.json" hidden>
   <input id="backgroundInput" type="file" accept="image/*" hidden>
  </div>
@@ -163,7 +163,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
    <p>멤버·날짜·활동·태그·최애 표시까지. 사진은 외부 서버로 전송되지 않습니다.</p><p class="small" style="color:#d9ccec;margin-top:10px"><span class="status-dot"></span><span id="appStatus">기기 내부 저장 · 오프라인 사용 가능</span></p>
   </div>
   <div class="drop" id="dropZone">
-   <div><b>사진을 여기에 끌어놓기</b><br><span class="small" style="color:#ddd">또는 눌러서 여러 장 선택</span></div>
+   <div><b>사진·GIF를 여기에 끌어놓기</b><br><span class="small" style="color:#ddd">또는 눌러서 여러 장 선택 (GIF 포함)</span></div>
   </div>
  </section>
 
@@ -175,6 +175,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
   </select>
   <select class="field" id="activityFilter"><option value="">모든 활동</option></select>
   <select class="field" id="favFilter"><option value="">전체 사진</option><option value="fav">★ 최애만</option><option value="untagged">미분류만</option></select>
+  <select class="field" id="mediaFilter"><option value="">사진+GIF 전체</option><option value="gif">🎞️ GIF만</option><option value="still">🖼️ 일반 사진만</option></select>
   <select class="field" id="photoSize"><option value="tiny">매우 작게</option><option value="small">작게</option><option value="normal">보통</option><option value="large">크게</option><option value="list">리스트</option></select>
   <select class="field" id="viewMode"><option value="grid">전체 그리드</option><option value="member">멤버별 나누기</option></select>
   <div class="date-range" aria-label="촬영일 기간 검색">
@@ -301,6 +302,7 @@ function getMembers(x){
 function isGroup(x){return x.group===true || x.member==="단체" || (Array.isArray(x.members)&&x.members.includes("단체"));}
 function memberLabels(x){return isGroup(x)?[...MEMBERS]:getMembers(x)}
 function memberText(x){return isGroup(x)?"단체":(getMembers(x).join(" · ")||"미분류")}
+function isGif(x){return (x.blob&&x.blob.type==="image/gif") || /\.gif$/i.test(x.originalName||"") }
 function exactSameMembers(actual, wanted){
  const a=[...actual].sort(), b=[...wanted].sort();
  return a.length===b.length && a.every((v,i)=>v===b[i]);
@@ -426,12 +428,14 @@ function passesNonMemberFilters(x){
  const q=document.querySelector("#search").value.trim().toLowerCase();
  const af=document.querySelector("#activityFilter").value;
  const ff=document.querySelector("#favFilter").value;
+ const mf=document.querySelector("#mediaFilter").value;
  const dateFrom=document.querySelector("#dateFrom").value;
  const dateTo=document.querySelector("#dateTo").value;
  const hay=[x.name,memberText(x),...memberLabels(x),x.bubble?"버블":"",x.activity,x.source,x.note,...(x.tags||[])].join(" ").toLowerCase();
  return (!q||hay.includes(q)) && (!af||x.activity===af)
   && (!dateFrom||((x.date||"")>=dateFrom))
   && (!dateTo||((x.date||"")<=dateTo))
+  && (!mf||(mf==="gif"?isGif(x):!isGif(x)))
   && (!ff||(ff==="fav"?x.fav: !isGroup(x)&&getMembers(x).length===0 && !x.activity && !(x.tags||[]).length));
 }
 function filtered(){
@@ -456,8 +460,8 @@ function render(){
   `<button class="chip ${memberFilters.size===0?"active":""}" data-m="">전체 <span class="chip-count">${countBase.length}</span></button>`+
   MEMBER_FILTERS.map(m=>`<button class="chip ${memberFilters.has(m)?"active":""}" data-m="${m}" aria-pressed="${memberFilters.has(m)}">${m} <span class="chip-count">${memberCountFor(m,countBase)}</span></button>`).join("");
 
- const arr=filtered(), favs=items.filter(x=>x.fav).length, un=items.filter(x=>!isGroup(x)&&getMembers(x).length===0).length;
- document.querySelector("#stats").innerHTML=`<div class="stat">전체 <b>${items.length}</b></div><div class="stat">현재 보기 <b>${arr.length}</b></div><div class="stat">최애 <b>${favs}</b></div><div class="stat">미분류 <b>${un}</b></div>`;
+ const arr=filtered(), favs=items.filter(x=>x.fav).length, un=items.filter(x=>!isGroup(x)&&getMembers(x).length===0).length, gifs=items.filter(isGif).length;
+ document.querySelector("#stats").innerHTML=`<div class="stat">전체 <b>${items.length}</b></div><div class="stat">현재 보기 <b>${arr.length}</b></div><div class="stat">GIF <b>${gifs}</b></div><div class="stat">최애 <b>${favs}</b></div><div class="stat">미분류 <b>${un}</b></div>`;
  const g=document.querySelector("#gallery");
  if(!arr.length){g.innerHTML=`<div class="empty">${items.length?"조건에 맞는 사진이 없습니다.":"사진을 추가하면 여기에 예쁘게 정리됩니다."}</div>`;return}
  const cardHTML=x=>`
@@ -469,7 +473,7 @@ function render(){
    <div class="cardbody">
     <div class="name">${esc(x.name)}</div>
     <div class="meta">${esc([memberText(x),x.date,x.activity].filter(Boolean).join(" · ")||"미분류")}</div>
-    <div class="tags">${x.bubble?`<span class="bubble-badge">🫧 버블</span>`:""}${(x.tags||[]).slice(0,4).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
+    <div class="tags">${isGif(x)?`<span class="bubble-badge">🎞️ GIF</span>`:""}${x.bubble?`<span class="bubble-badge">🫧 버블</span>`:""}${(x.tags||[]).slice(0,4).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
    </div>
   </article>`;
  if(document.querySelector("#viewMode").value==="member"){
@@ -583,7 +587,7 @@ document.body.addEventListener("click",async e=>{
  if(e.target.closest(".view-photo")||e.target.matches(".thumb")){showLightbox(id);return}
  openEdit(id);
 });
-["search","sort","activityFilter","favFilter","viewMode","dateFrom","dateTo"].forEach(id=>document.querySelector("#"+id).addEventListener(id==="search"?"input":"change",render));
+["search","sort","activityFilter","favFilter","mediaFilter","viewMode","dateFrom","dateTo"].forEach(id=>document.querySelector("#"+id).addEventListener(id==="search"?"input":"change",render));
 document.querySelector("#photoSize").addEventListener("change",e=>{document.body.dataset.photoSize=e.target.value;localStorage.setItem("sceneBoxPhotoSize",e.target.value);});
 closeLightbox.onclick=()=>lightboxDialog.close();
 prevPhoto.onclick=()=>moveLightbox(-1);
@@ -739,7 +743,7 @@ backupBtn.onclick=async()=>{
    entries.push({name:fileName,data:await x.blob.arrayBuffer()});
    const copy={...x,photoFile:fileName,mimeType:x.blob.type};delete copy.blob;meta.push(copy);n++;
   }
-  const manifest={app:"SCENE BOX",version:3,format:"zip",createdAt:new Date().toISOString(),settings:{heroBackground:getBgSettings()},photos:meta};
+  const manifest={app:"SCENE BOX",version:2,format:"zip",createdAt:new Date().toISOString(),photos:meta};
   entries.unshift({name:"backup.json",data:new TextEncoder().encode(JSON.stringify(manifest,null,2))});
   const zip=await makeZip(entries);downloadBlob(zip,`scene-box-full-backup-${new Date().toISOString().slice(0,10)}.zip`);
   alert("ZIP 전체 백업이 저장되었습니다. 이 파일 하나에 사진 원본과 모든 분류 정보가 들어 있습니다.");
@@ -756,7 +760,6 @@ restoreInput.onchange=async e=>{
    const files=readStoredZip(await file.arrayBuffer()),manifestBytes=files.get("backup.json");
    if(!manifestBytes)throw new Error("backup.json이 없는 백업 파일입니다.");
    const data=JSON.parse(new TextDecoder().decode(manifestBytes));
-   if(data.settings?.heroBackground)setBgSettings(data.settings.heroBackground);
    if(data.app!=="SCENE BOX"||!Array.isArray(data.photos))throw new Error("SCENE BOX 백업 파일이 아닙니다.");
    if(!confirm(`${data.photos.length}장의 사진을 복원할까요?`))return;
    for(const p of data.photos){const bytes=files.get(p.photoFile);if(!bytes)continue;const item={...p,blob:new Blob([bytes],{type:p.mimeType||"image/jpeg"})};delete item.photoFile;delete item.mimeType;await put(item)}
@@ -783,6 +786,7 @@ document.querySelector("#homeBtn").onclick=()=>{
  document.querySelector("#sort").value="new";
  document.querySelector("#activityFilter").value="";
  document.querySelector("#favFilter").value="";
+ document.querySelector("#mediaFilter").value="";
  document.querySelector("#dateFrom").value="";
  document.querySelector("#dateTo").value="";
  document.querySelector("#viewMode").value="grid";
@@ -793,8 +797,8 @@ document.querySelector("#homeBtn").onclick=()=>{
 document.querySelector("#exportBtn").onclick=()=>{
  const ok=confirm("목록 CSV 안내\n\n사진 원본은 포함하지 않고 제목·원본 파일명·멤버·날짜·활동·태그·메모 같은 목록만 표 파일로 저장합니다. 엑셀이나 구글 스프레드시트에서 열 수 있습니다.\n\nCSV 목록을 저장할까요?");
  if(!ok)return;
- const rows=[["제목","원본 파일명","멤버","버블","촬영일","활동","출처","태그","메모","최애"]];
- items.forEach(x=>rows.push([x.name,x.originalName||x.name,memberText(x),x.bubble?"Y":"N",x.date,x.activity,x.source,(x.tags||[]).join("|"),x.note,x.fav?"Y":"N"]));
+ const rows=[["제목","원본 파일명","멤버","촬영일","활동","출처","태그","메모","최애"]];
+ items.forEach(x=>rows.push([x.name,x.originalName||x.name,memberText(x),x.date,x.activity,x.source,(x.tags||[]).join("|"),x.note,x.fav?"Y":"N"]));
  const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v||"").replaceAll('"','""')}"`).join(",")).join("\n");
  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="scene-box-photo-list.csv";a.click();
 };
@@ -803,7 +807,7 @@ document.querySelector("#exportBtn").onclick=()=>{
  const savedSize=localStorage.getItem("sceneBoxPhotoSize")||"small";
  document.querySelector("#photoSize").value=savedSize;
  document.body.dataset.photoSize=savedSize;
- applyBackground();db=await openDB();await load();
+ db=await openDB();await load();
 })();
 </script>
 </body>
