@@ -339,10 +339,30 @@ function togglePickerButton(btn){
   input.checked=!input.checked;btn.classList.toggle("selected",input.checked);btn.setAttribute("aria-pressed",String(input.checked));
  }
 }
-const BG_KEY="scene-box-hero-bg-v1";
+const BG_KEY="scene-box-hero-bg-v2";
+const SETTINGS_STORE="settings";
 let pendingBackgroundData=null;
-function getBgSettings(){try{return JSON.parse(localStorage.getItem(BG_KEY)||"{}")||{}}catch{return {}}}
-function setBgSettings(v){localStorage.setItem(BG_KEY,JSON.stringify(v));applyBackground(v)}
+let bgSettingsCache={};
+function getBgSettings(){return bgSettingsCache||{}}
+async function loadBgSettings(){
+ let saved=null;
+ try{saved=await reqP(db.transaction(SETTINGS_STORE,"readonly").objectStore(SETTINGS_STORE).get(BG_KEY))}catch{}
+ if(saved?.value){bgSettingsCache=saved.value}
+ else{
+  try{bgSettingsCache=JSON.parse(localStorage.getItem("scene-box-hero-bg-v1")||"{}")||{}}catch{bgSettingsCache={}}
+  if(Object.keys(bgSettingsCache).length)await saveBgSettingsToDB(bgSettingsCache);
+ }
+ applyBackground(bgSettingsCache);
+}
+async function saveBgSettingsToDB(v){
+ await reqP(db.transaction(SETTINGS_STORE,"readwrite").objectStore(SETTINGS_STORE).put({key:BG_KEY,value:v,updatedAt:Date.now()}));
+}
+async function setBgSettings(v){
+ bgSettingsCache=v||{};
+ try{localStorage.setItem(BG_KEY,JSON.stringify(bgSettingsCache))}catch{}
+ await saveBgSettingsToDB(bgSettingsCache);
+ applyBackground(bgSettingsCache);
+}
 function applyBackground(v=getBgSettings()){
  const hero=document.querySelector(".hero"); if(!hero)return;
  hero.style.setProperty("--hero-bg",v.dataUrl?`url(${JSON.stringify(v.dataUrl)})`:"none");
@@ -365,8 +385,12 @@ let db, items=[], memberFilters=new Set(), editingId=null, selected=new Set(), p
 
 function openDB(){
  return new Promise((resolve,reject)=>{
-  const req=indexedDB.open(DB_NAME,1);
-  req.onupgradeneeded=()=>{const d=req.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:"id"})};
+  const req=indexedDB.open(DB_NAME,2);
+  req.onupgradeneeded=()=>{
+   const d=req.result;
+   if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:"id"});
+   if(!d.objectStoreNames.contains(SETTINGS_STORE))d.createObjectStore(SETTINGS_STORE,{keyPath:"key"});
+  };
   req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error);
  });
 }
@@ -732,7 +756,15 @@ backgroundInput.onchange=async e=>{const f=e.target.files?.[0];if(!f)return;pend
 bgDim.oninput=updateBgPreview;bgBlur.oninput=updateBgPreview;
 removeBackground.onclick=()=>{pendingBackgroundData="";updateBgPreview()};
 closeBackground.onclick=()=>backgroundDialog.close();
-saveBackground.onclick=()=>{const old=getBgSettings();setBgSettings({dataUrl:pendingBackgroundData===null?(old.dataUrl||""):pendingBackgroundData,dim:Number(bgDim.value),blur:Number(bgBlur.value)});backgroundDialog.close()};
+saveBackground.onclick=async()=>{
+ const old=getBgSettings();
+ saveBackground.disabled=true;
+ try{
+  await setBgSettings({dataUrl:pendingBackgroundData===null?(old.dataUrl||""):pendingBackgroundData,dim:Number(bgDim.value),blur:Number(bgBlur.value)});
+  backgroundDialog.close();
+  alert("배경이 기기에 고정 저장되었습니다.");
+ }catch(err){alert("배경 저장에 실패했습니다: "+err.message)}finally{saveBackground.disabled=false}
+};
 backupBtn.onclick=async()=>{
  if(!items.length)return alert("백업할 사진이 없습니다.");
  const ok=confirm("전체 백업 안내\n\n사진 원본과 제목·멤버·날짜·태그·메모를 ZIP 파일 하나에 저장합니다. 사진이 많으면 생성에 시간이 걸리고 파일 용량이 클 수 있습니다.\n\n지금 ZIP 백업을 만들까요?");
@@ -746,7 +778,7 @@ backupBtn.onclick=async()=>{
    entries.push({name:fileName,data:await x.blob.arrayBuffer()});
    const copy={...x,photoFile:fileName,mimeType:x.blob.type};delete copy.blob;meta.push(copy);n++;
   }
-  const manifest={app:"SCENE BOX",version:2,format:"zip",createdAt:new Date().toISOString(),photos:meta};
+  const manifest={app:"SCENE BOX",version:3,format:"zip",createdAt:new Date().toISOString(),settings:{heroBackground:getBgSettings()},photos:meta};
   entries.unshift({name:"backup.json",data:new TextEncoder().encode(JSON.stringify(manifest,null,2))});
   const zip=await makeZip(entries);downloadBlob(zip,`scene-box-full-backup-${new Date().toISOString().slice(0,10)}.zip`);
   alert("ZIP 전체 백업이 저장되었습니다. 이 파일 하나에 사진 원본과 모든 분류 정보가 들어 있습니다.");
@@ -765,11 +797,12 @@ restoreInput.onchange=async e=>{
    const data=JSON.parse(new TextDecoder().decode(manifestBytes));
    if(data.app!=="SCENE BOX"||!Array.isArray(data.photos))throw new Error("SCENE BOX 백업 파일이 아닙니다.");
    if(!confirm(`${data.photos.length}장의 사진을 복원할까요?`))return;
+   if(data.settings?.heroBackground)await setBgSettings(data.settings.heroBackground);
    for(const p of data.photos){const bytes=files.get(p.photoFile);if(!bytes)continue;const item={...p,blob:new Blob([bytes],{type:p.mimeType||"image/jpeg"})};delete item.photoFile;delete item.mimeType;await put(item)}
    await load();alert("ZIP 복원이 완료되었습니다.");
   }else{
    const data=JSON.parse(await file.text());
-   if(data.settings?.heroBackground)setBgSettings(data.settings.heroBackground);
+   if(data.settings?.heroBackground)await setBgSettings(data.settings.heroBackground);
    if(data.app!=="SCENE BOX"||!Array.isArray(data.photos))throw new Error("SCENE BOX 백업 파일이 아닙니다.");
    if(!confirm(`${data.photos.length}장의 예전 JSON 백업을 복원할까요?`))return;
    for(const p of data.photos){const item={...p,blob:dataURLToBlob(p.blobData)};delete item.blobData;await put(item)}
@@ -811,7 +844,7 @@ document.querySelector("#exportBtn").onclick=()=>{
  const savedSize=localStorage.getItem("sceneBoxPhotoSize")||"small";
  document.querySelector("#photoSize").value=savedSize;
  document.body.dataset.photoSize=savedSize;
- db=await openDB();await load();
+ db=await openDB();await loadBgSettings();await load();
 })();
 </script>
 </body>
