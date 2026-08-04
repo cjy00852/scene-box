@@ -317,11 +317,16 @@ function memberMatches(x,filters){
  if(!memberSelected.length)return true;
  const wantsGroup=memberSelected.includes("단체");
  const wanted=memberSelected.filter(m=>m!=="단체");
+ // 완전 단체 사진은 '단체'를 선택했을 때만 표시합니다.
  if(isGroup(x))return wantsGroup;
  const actual=getMembers(x);
  if(wanted.includes("미분류"))return actual.length===0 && wanted.length===1;
+ // '단체'만 선택했는데 일반 사진이면 제외합니다.
  if(!wanted.length)return false;
- return exactSameMembers(actual,wanted);
+ // 선택한 멤버가 사진에 모두 들어 있으면 표시합니다.
+ // 예: 원이만 선택 → 원이 단독/2인/3인 사진 모두 표시
+ //     원이+제나 선택 → 두 멤버가 모두 포함된 사진 표시
+ return wanted.every(m=>actual.includes(m));
 }
 function pickerHTML(prefix,selected=[],group=false){return [...ASSIGNABLE,"단체"].map(m=>{const checked=group?m==="단체":selected.includes(m);return `<button type="button" class="member-option ${checked?"selected":""}" data-picker="${prefix}" data-member="${m}" aria-pressed="${checked}">${m}<input type="checkbox" name="${prefix}" value="${m}" ${checked?"checked":""}></button>`}).join("")}
 function readPicker(prefix){const vals=[...document.querySelectorAll(`input[name="${prefix}"]:checked`)].map(x=>x.value);return {group:vals.includes("단체"),members:vals.filter(m=>ASSIGNABLE.includes(m))}}
