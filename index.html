@@ -139,12 +139,20 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
  body[data-photo-size="list"] .thumb{width:78px;height:98px}
  .cardbody{padding:9px}.top{padding:11px 13px}main{padding:14px 10px 90px}
 }
+
+.pagination-wrap{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:20px 0 6px;padding:12px;background:rgba(255,255,255,.85);border:1px solid var(--line);border-radius:16px}
+.pagination-info{font-size:13px;color:var(--muted);font-weight:700;margin-right:4px}
+.page-buttons{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}
+.page-btn{border:1px solid var(--line);background:white;color:var(--ink);border-radius:10px;min-width:38px;height:38px;padding:0 10px;font-weight:800}
+.page-btn.active{background:var(--ink);color:white;border-color:var(--ink)}
+.page-btn:disabled{opacity:.38;cursor:default}
+.page-size-select{border:1px solid var(--line);background:white;border-radius:10px;height:38px;padding:0 9px;font-weight:700}
 </style>
 </head>
 <body>
 <header>
  <div class="top">
-  <div><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE · v7</div></div>
+  <div><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE · v11</div></div>
   <div class="spacer"></div>
   <button class="btn" id="homeBtn" title="전체 화면으로 돌아가기">⌂ 홈</button>
   <button class="btn install" id="installBtn" hidden>앱 설치</button>
@@ -193,6 +201,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
  <div class="members" id="memberChips"></div>
  <div class="stats" id="stats"></div>
  <div id="gallery"></div>
+ <div id="pagination"></div>
 </main>
 
 <div class="bulk" id="bulkBar">
@@ -392,6 +401,8 @@ async function compressBackground(file){
 const DB_NAME="scene-box-db", STORE="photos";
 let db, items=[], memberFilters=new Set(), editingId=null, selected=new Set(), pendingFiles=[];
 let virtualState=null,virtualRAF=0,virtualUrls=[];
+let currentPage=1;
+let pageSize=Number(localStorage.getItem("sceneBoxPageSize")||50);
 
 function openDB(){
  return new Promise((resolve,reject)=>{
@@ -541,6 +552,28 @@ function startVirtualGallery(arr,headerHTML=""){
  renderVirtualWindow(true);
 }
 
+function pageButtonHTML(page,label=String(page),active=false,disabled=false){
+ return `<button class="page-btn ${active?"active":""}" data-page="${page}" ${disabled?"disabled":""}>${label}</button>`;
+}
+function renderPagination(total){
+ const box=document.querySelector("#pagination");
+ if(!box)return;
+ const pages=Math.max(1,Math.ceil(total/pageSize));
+ if(currentPage>pages)currentPage=pages;
+ if(total<=pageSize){
+  box.innerHTML=`<div class="pagination-wrap"><span class="pagination-info">총 ${total.toLocaleString()}장 · 1페이지</span><select id="pageSizeSelect" class="page-size-select" aria-label="한 페이지 사진 수"><option value="50" ${pageSize===50?"selected":""}>50장씩</option><option value="100" ${pageSize===100?"selected":""}>100장씩</option><option value="200" ${pageSize===200?"selected":""}>200장씩</option></select></div>`;
+  return;
+ }
+ const buttons=[];
+ buttons.push(pageButtonHTML(currentPage-1,"‹ 이전",false,currentPage===1));
+ const radius=2;
+ let from=Math.max(1,currentPage-radius),to=Math.min(pages,currentPage+radius);
+ if(from>1){buttons.push(pageButtonHTML(1,"1",currentPage===1));if(from>2)buttons.push(`<span class="pagination-info">…</span>`)}
+ for(let i=from;i<=to;i++)buttons.push(pageButtonHTML(i,String(i),i===currentPage));
+ if(to<pages){if(to<pages-1)buttons.push(`<span class="pagination-info">…</span>`);buttons.push(pageButtonHTML(pages,String(pages),currentPage===pages))}
+ buttons.push(pageButtonHTML(currentPage+1,"다음 ›",false,currentPage===pages));
+ box.innerHTML=`<div class="pagination-wrap"><span class="pagination-info">총 ${total.toLocaleString()}장 · ${currentPage}/${pages}페이지</span><div class="page-buttons">${buttons.join("")}</div><select id="pageSizeSelect" class="page-size-select" aria-label="한 페이지 사진 수"><option value="50" ${pageSize===50?"selected":""}>50장씩</option><option value="100" ${pageSize===100?"selected":""}>100장씩</option><option value="200" ${pageSize===200?"selected":""}>200장씩</option></select></div>`;
+}
 function render(){
  const acts=[...new Set(items.map(x=>x.activity).filter(Boolean))].sort();
  const af=document.querySelector("#activityFilter"), prev=af.value;
@@ -553,23 +586,27 @@ function render(){
   MEMBER_FILTERS.map(m=>`<button class="chip ${memberFilters.has(m)?"active":""}" data-m="${m}" aria-pressed="${memberFilters.has(m)}">${m} <span class="chip-count">${memberCountFor(m,countBase)}</span></button>`).join("");
 
  const arr=filtered(), favs=items.filter(x=>x.fav).length, un=items.filter(x=>!isGroup(x)&&getMembers(x).length===0).length, gifs=items.filter(isGif).length;
- document.querySelector("#stats").innerHTML=`<div class="stat">전체 <b>${items.length}</b></div><div class="stat">현재 보기 <b>${arr.length}</b></div><div class="stat">GIF <b>${gifs}</b></div><div class="stat">최애 <b>${favs}</b></div><div class="stat">미분류 <b>${un}</b></div>`;
+ const totalPages=Math.max(1,Math.ceil(arr.length/pageSize));
+ if(currentPage>totalPages)currentPage=totalPages;
+ const pageStart=(currentPage-1)*pageSize;
+ const pageArr=arr.slice(pageStart,pageStart+pageSize);
+ document.querySelector("#stats").innerHTML=`<div class="stat">전체 <b>${items.length}</b></div><div class="stat">현재 보기 <b>${arr.length}</b></div><div class="stat">현재 페이지 <b>${pageArr.length}</b></div><div class="stat">GIF <b>${gifs}</b></div><div class="stat">최애 <b>${favs}</b></div><div class="stat">미분류 <b>${un}</b></div>`;
  const g=document.querySelector("#gallery");
  virtualState=null;revokeVirtualUrls();
- if(!arr.length){g.innerHTML=`<div class="empty">${items.length?"조건에 맞는 사진이 없습니다.":"사진을 추가하면 여기에 예쁘게 정리됩니다."}</div>`;updateBulk();return}
+ if(!arr.length){g.innerHTML=`<div class="empty">${items.length?"조건에 맞는 사진이 없습니다.":"사진을 추가하면 여기에 예쁘게 정리됩니다."}</div>`;renderPagination(0);updateBulk();return}
  if(document.querySelector("#viewMode").value==="member"&&!memberFilters.size){
   g.innerHTML=MEMBER_FILTERS.map(m=>{
-   const group=items.filter(x=>memberMatches(x,new Set([m])));
+   const group=pageArr.filter(x=>memberMatches(x,new Set([m])));
    if(!group.length)return "";
-   return `<section class="member-section"><div class="member-head"><h2>${esc(m)}</h2><span class="member-count">${group.length}장</span></div><div class="grid">${group.slice(0,120).map(cardHTML).join("")}</div>${group.length>120?`<div class="small" style="padding:8px 3px;color:var(--muted)">성능을 위해 이 구역은 처음 120장만 표시됩니다. 멤버 버튼을 누르면 전체를 가상 스크롤로 볼 수 있습니다.</div>`:""}<div class="member-divider"></div></section>`;
+   return `<section class="member-section"><div class="member-head"><h2>${esc(m)}</h2><span class="member-count">이 페이지 ${group.length}장</span></div><div class="grid">${group.map(cardHTML).join("")}</div><div class="member-divider"></div></section>`;
   }).join("");
  }else{
   const header=document.querySelector("#viewMode").value==="member"&&memberFilters.size?`<section class="member-section"><div class="member-head"><h2>${esc([...memberFilters].join(" · "))}</h2><span class="member-count">${arr.length}장</span></div></section>`:"";
-  startVirtualGallery(arr,header);
+  g.innerHTML=`${header}<div class="grid">${pageArr.map(cardHTML).join("")}</div>`;
  }
+ renderPagination(arr.length);
  updateBulk();
 }
-
 function updateBulk(){
  document.querySelector("#selectedCount").textContent=`${selected.size}장 선택`;
  document.querySelector("#bulkBar").classList.toggle("show",selected.size>0);
@@ -653,7 +690,7 @@ document.body.addEventListener("click",async e=>{
   if(!m)memberFilters.clear();
   else if(memberFilters.has(m))memberFilters.delete(m);
   else memberFilters.add(m);
-  render();return
+  currentPage=1;render();return
  }
  const card=e.target.closest(".card"); if(!card)return;
  const id=card.dataset.id, x=items.find(v=>v.id===id);
@@ -664,8 +701,15 @@ document.body.addEventListener("click",async e=>{
  if(e.target.closest(".view-photo")||e.target.matches(".thumb")){showLightbox(id);return}
  openEdit(id);
 });
-["search","sort","activityFilter","favFilter","mediaFilter","bubbleView","viewMode","dateFrom","dateTo"].forEach(id=>document.querySelector("#"+id).addEventListener(id==="search"?"input":"change",render));
-document.querySelector("#photoSize").addEventListener("change",e=>{document.body.dataset.photoSize=e.target.value;localStorage.setItem("sceneBoxPhotoSize",e.target.value);render();});
+["search","sort","activityFilter","favFilter","mediaFilter","bubbleView","viewMode","dateFrom","dateTo"].forEach(id=>document.querySelector("#"+id).addEventListener(id==="search"?"input":"change",()=>{currentPage=1;render()}));
+document.querySelector("#photoSize").addEventListener("change",e=>{document.body.dataset.photoSize=e.target.value;localStorage.setItem("sceneBoxPhotoSize",e.target.value);currentPage=1;render();});
+document.querySelector("#pagination").addEventListener("click",e=>{
+ const b=e.target.closest(".page-btn[data-page]");if(!b||b.disabled)return;
+ currentPage=Math.max(1,Number(b.dataset.page)||1);render();window.scrollTo({top:document.querySelector("#gallery").offsetTop-80,behavior:"smooth"});
+});
+document.querySelector("#pagination").addEventListener("change",e=>{
+ if(e.target.id!=="pageSizeSelect")return;pageSize=Number(e.target.value)||50;localStorage.setItem("sceneBoxPageSize",String(pageSize));currentPage=1;render();
+});
 closeLightbox.onclick=()=>lightboxDialog.close();
 prevPhoto.onclick=()=>moveLightbox(-1);
 nextPhoto.onclick=()=>moveLightbox(1);
@@ -877,6 +921,7 @@ document.querySelector("#homeBtn").onclick=()=>{
  document.querySelector("#dateFrom").value="";
  document.querySelector("#dateTo").value="";
  document.querySelector("#viewMode").value="grid";
+ currentPage=1;
  updateBulk();
  render();
  window.scrollTo({top:0,behavior:"smooth"});
@@ -890,8 +935,7 @@ document.querySelector("#exportBtn").onclick=()=>{
  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="scene-box-photo-list.csv";a.click();
 };
 
-window.addEventListener("scroll",()=>{if(virtualState)renderVirtualWindow()},{passive:true});
-window.addEventListener("resize",()=>{if(virtualState)renderVirtualWindow(true)});
+
 
 (async()=>{
  const savedSize=localStorage.getItem("sceneBoxPhotoSize")||"small";
