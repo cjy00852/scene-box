@@ -89,7 +89,7 @@ body[data-photo-size="small"] .check{width:18px;height:18px}
 .view-photo{position:absolute;right:9px;bottom:74px;border:0;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.9);font-size:19px;box-shadow:0 4px 12px rgba(0,0,0,.16)}
 .lightbox-dialog{max-width:none;width:100vw;height:100dvh;border-radius:0;background:#0d0b12;color:white}
 .lightbox{height:100%;display:grid;grid-template-rows:auto 1fr auto;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));gap:10px}
-.lightbox-top,.lightbox-bottom{display:flex;align-items:center;gap:8px}.lightbox-title{min-width:0;flex:1;text-align:center;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lightbox-stage{position:relative;display:flex;align-items:center;justify-content:center;min-height:0;overflow:hidden}.lightbox-img{max-width:100%;max-height:100%;object-fit:contain;user-select:none}.nav-photo{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:58px;border:0;border-radius:14px;background:rgba(255,255,255,.18);color:white;font-size:28px}.nav-photo.prev{left:4px}.nav-photo.next{right:4px}.lightbox-meta{flex:1;color:#c9c2d2;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lightbox .btn{white-space:nowrap}
+.lightbox-top,.lightbox-bottom{display:flex;align-items:center;gap:8px}.lightbox-title{min-width:0;flex:1;text-align:center;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lightbox-stage{position:relative;display:flex;align-items:center;justify-content:center;min-height:0;overflow:hidden}.lightbox-img,.lightbox-video{max-width:100%;max-height:100%;object-fit:contain;user-select:none}.lightbox-video{width:auto;height:auto;background:#000}.nav-photo{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:58px;border:0;border-radius:14px;background:rgba(255,255,255,.18);color:white;font-size:28px}.nav-photo.prev{left:4px}.nav-photo.next{right:4px}.lightbox-meta{flex:1;color:#c9c2d2;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lightbox .btn{white-space:nowrap}
 body[data-photo-size="tiny"] .view-photo{width:28px;height:28px;font-size:14px;right:4px;bottom:44px}
 body[data-photo-size="list"] .view-photo{bottom:8px;right:8px}
 .check{position:absolute;left:10px;top:10px;width:22px;height:22px;accent-color:var(--accent)}
@@ -102,8 +102,8 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 .modal h2{margin:0 0 15px}
 .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
 .full{grid-column:1/-1}
-.preview{max-height:330px;width:100%;object-fit:contain;background:#eee;border-radius:16px}
-.import-list{max-height:310px;overflow:auto;display:grid;gap:8px;margin-top:12px}.import-row{display:grid;grid-template-columns:54px 1fr;gap:9px;align-items:center;background:#faf8fd;border:1px solid var(--line);border-radius:14px;padding:8px}.import-row img{width:54px;height:66px;object-fit:cover;border-radius:9px}.import-row input{padding:9px}.hint{font-size:12px;color:var(--muted);margin-top:5px}
+.preview{max-height:330px;width:100%;object-fit:contain;background:#eee;border-radius:16px}.media-hidden{display:none!important}.video-badge{font-size:11px;background:#e9e2ff;border-radius:999px;padding:4px 7px;font-weight:800}
+.import-list{max-height:310px;overflow:auto;display:grid;gap:8px;margin-top:12px}.import-row{display:grid;grid-template-columns:54px 1fr;gap:9px;align-items:center;background:#faf8fd;border:1px solid var(--line);border-radius:14px;padding:8px}.import-row img,.import-row video{width:54px;height:66px;object-fit:cover;border-radius:9px;background:#111}.import-row input{padding:9px}.hint{font-size:12px;color:var(--muted);margin-top:5px}
 .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:15px;flex-wrap:wrap}
 .bulk{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:15;background:#211a30;color:white;border-radius:18px;padding:10px;display:none;gap:8px;box-shadow:var(--shadow);align-items:center;flex-wrap:wrap;justify-content:center;width:max-content;max-width:calc(100vw - 20px)}
 .bulk .member-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
@@ -152,7 +152,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 <body>
 <header>
  <div class="top">
-  <div><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE · v11</div></div>
+  <div><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE · v12</div></div>
   <div class="spacer"></div>
   <button class="btn" id="homeBtn" title="전체 화면으로 돌아가기">⌂ 홈</button>
   <button class="btn install" id="installBtn" hidden>앱 설치</button>
@@ -161,8 +161,8 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
   <button class="btn" id="backupBtn">전체 백업</button>
   <button class="btn" id="restoreBtn">복원</button>
   <button class="btn" id="exportBtn">목록 CSV</button>
-  <button class="btn primary" id="addBtn">＋ 사진 추가</button>
-  <input id="fileInput" type="file" accept="image/*,.gif" multiple hidden>
+  <button class="btn primary" id="addBtn">＋ 사진·영상 추가</button>
+  <input id="fileInput" type="file" accept="image/*,video/*,.gif,.mp4,.webm,.mov,.m4v" multiple hidden>
   <input id="restoreInput" type="file" accept="application/zip,.zip,application/json,.json" hidden>
   <input id="backgroundInput" type="file" accept="image/*" hidden>
  </div>
@@ -172,10 +172,10 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
  <section class="hero">
   <div>
    <h1>리센느 사진을<br>내 방식대로 정리해요.</h1>
-   <p>멤버·날짜·활동·태그·최애 표시까지. 사진은 외부 서버로 전송되지 않습니다.</p><p class="small" style="color:#d9ccec;margin-top:10px"><span class="status-dot"></span><span id="appStatus">기기 내부 저장 · 오프라인 사용 가능</span></p>
+   <p>멤버·날짜·활동·태그·최애 표시까지. 사진과 영상은 외부 서버로 전송되지 않습니다.</p><p class="small" style="color:#d9ccec;margin-top:10px"><span class="status-dot"></span><span id="appStatus">기기 내부 저장 · 오프라인 사용 가능</span></p>
   </div>
   <div class="drop" id="dropZone">
-   <div><b>사진·GIF를 여기에 끌어놓기</b><br><span class="small" style="color:#ddd">또는 눌러서 여러 장 선택 (GIF 포함)</span></div>
+   <div><b>사진·GIF·동영상을 여기에 끌어놓기</b><br><span class="small" style="color:#ddd">또는 눌러서 여러 파일 선택</span></div>
   </div>
  </section>
 
@@ -186,8 +186,8 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
    <option value="dateDesc">촬영일 최신순</option><option value="name">이름순</option>
   </select>
   <select class="field" id="activityFilter"><option value="">모든 활동</option></select>
-  <select class="field" id="favFilter"><option value="">전체 사진</option><option value="fav">★ 최애만</option><option value="untagged">미분류만</option></select>
-  <select class="field" id="mediaFilter"><option value="">사진+GIF 전체</option><option value="gif">🎞️ GIF만</option><option value="still">🖼️ 일반 사진만</option></select>
+  <select class="field" id="favFilter"><option value="">전체 미디어</option><option value="fav">★ 최애만</option><option value="untagged">미분류만</option></select>
+  <select class="field" id="mediaFilter"><option value="">사진+GIF+영상 전체</option><option value="video">🎥 동영상만</option><option value="gif">🎞️ GIF만</option><option value="still">🖼️ 일반 사진만</option><option value="image">🖼️ 사진+GIF만</option></select>
   <select class="field" id="bubbleView"><option value="all">🫧 버블 포함</option><option value="exclude">버블 제외</option><option value="only">버블만 보기</option></select>
   <select class="field" id="photoSize"><option value="tiny">매우 작게</option><option value="small">작게</option><option value="normal">보통</option><option value="large">크게</option><option value="list">리스트</option></select>
   <select class="field" id="viewMode"><option value="grid">전체 그리드</option><option value="member">멤버별 나누기</option></select>
@@ -252,8 +252,8 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 
 <dialog id="duplicateDialog">
  <div class="modal">
-  <h2>중복 사진 정리</h2>
-  <div class="hint">사진 내용이 완전히 같은 파일을 찾습니다. 파일명이나 제목이 달라도 탐지됩니다.</div>
+  <h2>중복 파일 정리</h2>
+  <div class="hint">사진이나 영상 내용이 완전히 같은 파일을 찾습니다. 파일명이나 제목이 달라도 탐지됩니다.</div>
   <div id="duplicateStatus" class="hint">검사 준비 중</div>
   <div class="duplicate-list" id="duplicateList"></div>
   <div class="actions">
@@ -272,7 +272,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
   </div>
   <div class="lightbox-stage">
    <button class="nav-photo prev" id="prevPhoto" aria-label="이전 사진">‹</button>
-   <img id="lightboxImage" class="lightbox-img" alt="크게 보기">
+   <img id="lightboxImage" class="lightbox-img" alt="크게 보기"><video id="lightboxVideo" class="lightbox-video media-hidden" controls playsinline preload="metadata"></video>
    <button class="nav-photo next" id="nextPhoto" aria-label="다음 사진">›</button>
   </div>
   <div class="lightbox-bottom">
@@ -284,8 +284,8 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 
 <dialog id="editDialog">
  <div class="modal">
-  <h2>사진 정보</h2>
-  <img id="modalPreview" class="preview">
+  <h2>미디어 정보</h2>
+  <img id="modalPreview" class="preview"><video id="modalVideoPreview" class="preview media-hidden" controls playsinline preload="metadata"></video>
   <div class="formgrid" style="margin-top:14px">
    <label class="full">제목<input class="field" id="editTitle" placeholder="사진 제목"></label>
    <div><b>멤버 (여러 명 선택 가능)</b><div class="member-picker" id="editMembers"></div></div>
@@ -317,6 +317,8 @@ function isGroup(x){return x.group===true || x.member==="단체" || (Array.isArr
 function memberLabels(x){return isGroup(x)?[...MEMBERS]:getMembers(x)}
 function memberText(x){return isGroup(x)?"단체":(getMembers(x).join(" · ")||"미분류")}
 function isGif(x){return (x.blob&&x.blob.type==="image/gif") || /\.gif$/i.test(x.originalName||"") }
+function isVideo(x){return !!(x.blob&&x.blob.type&&x.blob.type.startsWith("video/")) || /\.(mp4|webm|mov|m4v)$/i.test(x.originalName||"") }
+function isStill(x){return !isGif(x)&&!isVideo(x)}
 function exactSameMembers(actual, wanted){
  const a=[...actual].sort(), b=[...wanted].sort();
  return a.length===b.length && a.every((v,i)=>v===b[i]);
@@ -436,9 +438,9 @@ async function ensureHashes(onProgress){
 
 function baseName(name){return name.replace(/\.[^/.]+$/,"")}
 function openImport(files){
- pendingFiles=[...files].filter(f=>f.type.startsWith("image/"));
+ pendingFiles=[...files].filter(f=>f.type.startsWith("image/")||f.type.startsWith("video/")||/\.(gif|mp4|webm|mov|m4v)$/i.test(f.name));
  if(!pendingFiles.length)return;
- importList.innerHTML=pendingFiles.map((f,i)=>`<div class="import-row"><img src="${objectURL(f)}"><div><input class="field import-title" data-i="${i}" value="${esc(baseName(f.name))}" aria-label="사진 제목"><div class="small">${esc(f.name)}</div></div></div>`).join("");
+ importList.innerHTML=pendingFiles.map((f,i)=>{const url=objectURL(f);const preview=f.type.startsWith("video/")?`<video src="${url}" muted playsinline preload="metadata"></video>`:`<img src="${url}">`;return `<div class="import-row">${preview}<div><input class="field import-title" data-i="${i}" value="${esc(baseName(f.name))}" aria-label="미디어 제목"><div class="small">${esc(f.name)}</div></div></div>`}).join("");
  const currentFilters=[...memberFilters]; importMembers.innerHTML=pickerHTML("importMember",currentFilters.filter(m=>ASSIGNABLE.includes(m)),currentFilters.includes("단체")); importDate.value=""; importBubble.checked=false; importActivity.value=""; importSource.value=""; importTags.value=""; titlePattern.value="";
  importDialog.showModal();
 }
@@ -463,7 +465,7 @@ async function savePendingFiles(){
    saved++;
   }
   pendingFiles=[]; importDialog.close(); fileInput.value=""; await load();
-  if(skipped)alert(`새 사진 ${saved}장을 저장하고, 완전히 같은 중복 사진 ${skipped}장은 건너뛰었습니다.`);
+  if(skipped)alert(`새 미디어 ${saved}개를 저장하고, 완전히 같은 중복 파일 ${skipped}개는 건너뛰었습니다.`);
  }finally{saveImport.disabled=false;saveImport.textContent="분류해서 저장"}
 }
 
@@ -482,7 +484,7 @@ function passesNonMemberFilters(x){
  return (!q||hay.includes(q)) && (!af||x.activity===af)
   && (!dateFrom||((x.date||"")>=dateFrom))
   && (!dateTo||((x.date||"")<=dateTo))
-  && (!mf||(mf==="gif"?isGif(x):!isGif(x)))
+  && (!mf||(mf==="gif"?isGif(x):mf==="video"?isVideo(x):mf==="still"?isStill(x):mf==="image"?!isVideo(x):true))
   && (bv==="all"||(bv==="exclude"?!x.bubble:x.bubble))
   && (!ff||(ff==="fav"?x.fav: !isGroup(x)&&getMembers(x).length===0 && !x.activity && !(x.tags||[]).length));
 }
@@ -505,11 +507,11 @@ function cardHTML(x){
    <input class="check" type="checkbox" ${selected.has(x.id)?"checked":""} aria-label="선택">
    <button class="fav" aria-label="최애">${x.fav?"★":"☆"}</button>
    <button class="view-photo" aria-label="크게 보기">⛶</button>
-   <img class="thumb" loading="lazy" decoding="async" src="${url}" alt="${esc(x.name)}">
+   ${isVideo(x)?`<video class="thumb" src="${url}" muted playsinline preload="metadata"></video>`:`<img class="thumb" loading="lazy" decoding="async" src="${url}" alt="${esc(x.name)}">`}
    <div class="cardbody">
     <div class="name">${esc(x.name)}</div>
     <div class="meta">${esc([memberText(x),x.date,x.activity].filter(Boolean).join(" · ")||"미분류")}</div>
-    <div class="tags">${isGif(x)?`<span class="bubble-badge">🎞️ GIF</span>`:""}${x.bubble?`<span class="bubble-badge">🫧 버블</span>`:""}${(x.tags||[]).slice(0,4).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
+    <div class="tags">${isVideo(x)?`<span class="video-badge">🎥 영상</span>`:""}${isGif(x)?`<span class="bubble-badge">🎞️ GIF</span>`:""}${x.bubble?`<span class="bubble-badge">🫧 버블</span>`:""}${(x.tags||[]).slice(0,4).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
    </div>
   </article>`;
 }
@@ -585,12 +587,12 @@ function render(){
   `<button class="chip ${memberFilters.size===0?"active":""}" data-m="">전체 <span class="chip-count">${countBase.length}</span></button>`+
   MEMBER_FILTERS.map(m=>`<button class="chip ${memberFilters.has(m)?"active":""}" data-m="${m}" aria-pressed="${memberFilters.has(m)}">${m} <span class="chip-count">${memberCountFor(m,countBase)}</span></button>`).join("");
 
- const arr=filtered(), favs=items.filter(x=>x.fav).length, un=items.filter(x=>!isGroup(x)&&getMembers(x).length===0).length, gifs=items.filter(isGif).length;
+ const arr=filtered(), favs=items.filter(x=>x.fav).length, un=items.filter(x=>!isGroup(x)&&getMembers(x).length===0).length, gifs=items.filter(isGif).length, videos=items.filter(isVideo).length;
  const totalPages=Math.max(1,Math.ceil(arr.length/pageSize));
  if(currentPage>totalPages)currentPage=totalPages;
  const pageStart=(currentPage-1)*pageSize;
  const pageArr=arr.slice(pageStart,pageStart+pageSize);
- document.querySelector("#stats").innerHTML=`<div class="stat">전체 <b>${items.length}</b></div><div class="stat">현재 보기 <b>${arr.length}</b></div><div class="stat">현재 페이지 <b>${pageArr.length}</b></div><div class="stat">GIF <b>${gifs}</b></div><div class="stat">최애 <b>${favs}</b></div><div class="stat">미분류 <b>${un}</b></div>`;
+ document.querySelector("#stats").innerHTML=`<div class="stat">전체 <b>${items.length}</b></div><div class="stat">현재 보기 <b>${arr.length}</b></div><div class="stat">현재 페이지 <b>${pageArr.length}</b></div><div class="stat">GIF <b>${gifs}</b></div><div class="stat">영상 <b>${videos}</b></div><div class="stat">최애 <b>${favs}</b></div><div class="stat">미분류 <b>${un}</b></div>`;
  const g=document.querySelector("#gallery");
  virtualState=null;revokeVirtualUrls();
  if(!arr.length){g.innerHTML=`<div class="empty">${items.length?"조건에 맞는 사진이 없습니다.":"사진을 추가하면 여기에 예쁘게 정리됩니다."}</div>`;renderPagination(0);updateBulk();return}
@@ -616,8 +618,15 @@ let lightboxId=null;
 function lightboxItems(){return filtered()}
 function showLightbox(id){
  const x=items.find(v=>v.id===id);if(!x)return;lightboxId=id;
- lightboxImage.src=objectURL(x.blob);
- lightboxTitle.textContent=x.name||x.originalName||"사진";
+ const mediaUrl=objectURL(x.blob);
+ if(isVideo(x)){
+  lightboxImage.classList.add("media-hidden");lightboxImage.removeAttribute("src");
+  lightboxVideo.classList.remove("media-hidden");lightboxVideo.src=mediaUrl;lightboxVideo.currentTime=0;
+ }else{
+  lightboxVideo.pause();lightboxVideo.classList.add("media-hidden");lightboxVideo.removeAttribute("src");
+  lightboxImage.classList.remove("media-hidden");lightboxImage.src=mediaUrl;
+ }
+ lightboxTitle.textContent=x.name||x.originalName||(isVideo(x)?"동영상":"사진");
  lightboxMeta.textContent=[memberText(x),x.date,x.activity,x.originalName].filter(Boolean).join(" · ");
  const arr=lightboxItems(), idx=arr.findIndex(v=>v.id===id);
  prevPhoto.disabled=arr.length<2;nextPhoto.disabled=arr.length<2;
@@ -628,8 +637,8 @@ function moveLightbox(step){
  let idx=arr.findIndex(v=>v.id===lightboxId);idx=(idx+step+arr.length)%arr.length;showLightbox(arr[idx].id);
 }
 function safeDownloadName(x){
- const ext=((x.originalName||"").match(/\.[a-zA-Z0-9]+$/)||[""])[0] || ({"image/jpeg":".jpg","image/png":".png","image/webp":".webp","image/gif":".gif"}[x.blob.type]||"");
- const base=(x.name||"scene-box-photo").replace(/[\/:*?"<>|]/g,"_").trim()||"scene-box-photo";return base+ext;
+ const ext=((x.originalName||"").match(/\.[a-zA-Z0-9]+$/)||[""])[0] || ({"image/jpeg":".jpg","image/png":".png","image/webp":".webp","image/gif":".gif","video/mp4":".mp4","video/webm":".webm","video/quicktime":".mov","video/x-m4v":".m4v"}[x.blob.type]||"");
+ const base=(x.name||(isVideo(x)?"scene-box-video":"scene-box-photo")).replace(/[\/:*?"<>|]/g,"_").trim()||(isVideo(x)?"scene-box-video":"scene-box-photo");return base+ext;
 }
 function downloadOne(id){
  const x=items.find(v=>v.id===id);if(!x)return;const a=document.createElement("a");const url=objectURL(x.blob);a.href=url;a.download=safeDownloadName(x);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -637,7 +646,14 @@ function downloadOne(id){
 
 function openEdit(id){
  const x=items.find(v=>v.id===id); if(!x)return; editingId=id;
- document.querySelector("#modalPreview").src=objectURL(x.blob);
+ const editUrl=objectURL(x.blob);
+ if(isVideo(x)){
+  modalPreview.classList.add("media-hidden");modalPreview.removeAttribute("src");
+  modalVideoPreview.classList.remove("media-hidden");modalVideoPreview.src=editUrl;
+ }else{
+  modalVideoPreview.pause();modalVideoPreview.classList.add("media-hidden");modalVideoPreview.removeAttribute("src");
+  modalPreview.classList.remove("media-hidden");modalPreview.src=editUrl;
+ }
  document.querySelector("#editTitle").value=x.name||baseName(x.originalName||"");
  document.querySelector("#editMembers").innerHTML=pickerHTML("editMember",getMembers(x),isGroup(x));
  document.querySelector("#editDate").value=x.date||"";
@@ -710,7 +726,7 @@ document.querySelector("#pagination").addEventListener("click",e=>{
 document.querySelector("#pagination").addEventListener("change",e=>{
  if(e.target.id!=="pageSizeSelect")return;pageSize=Number(e.target.value)||50;localStorage.setItem("sceneBoxPageSize",String(pageSize));currentPage=1;render();
 });
-closeLightbox.onclick=()=>lightboxDialog.close();
+closeLightbox.onclick=()=>{lightboxVideo.pause();lightboxDialog.close()};
 prevPhoto.onclick=()=>moveLightbox(-1);
 nextPhoto.onclick=()=>moveLightbox(1);
 downloadPhoto.onclick=()=>downloadOne(lightboxId);
@@ -728,7 +744,7 @@ document.querySelector("#saveEdit").onclick=async()=>{
  await put(x);editDialog.close();await load();
 };
 document.querySelector("#deleteOne").onclick=async()=>{
- if(!confirm("이 사진을 목록에서 삭제할까요? 원본 파일은 삭제되지 않습니다."))return;
+ if(!confirm("이 미디어를 목록에서 삭제할까요? 원본 파일은 삭제되지 않습니다."))return;
  await del(editingId);editDialog.close();await load();
 };
 document.querySelector("#clearSelect").onclick=()=>{selected.clear();bulkChosenMembers.clear();updateBulkMemberButtons();render()};
@@ -860,8 +876,8 @@ saveBackground.onclick=async()=>{
  }catch(err){alert("배경 저장에 실패했습니다: "+err.message)}finally{saveBackground.disabled=false}
 };
 backupBtn.onclick=async()=>{
- if(!items.length)return alert("백업할 사진이 없습니다.");
- const ok=confirm("전체 백업 안내\n\n사진 원본과 제목·멤버·날짜·태그·메모를 ZIP 파일 하나에 저장합니다. 사진이 많으면 생성에 시간이 걸리고 파일 용량이 클 수 있습니다.\n\n지금 ZIP 백업을 만들까요?");
+ if(!items.length)return alert("백업할 미디어가 없습니다.");
+ const ok=confirm("전체 백업 안내\n\n사진·GIF·동영상 원본과 제목·멤버·날짜·태그·메모를 ZIP 파일 하나에 저장합니다. 사진이 많으면 생성에 시간이 걸리고 파일 용량이 클 수 있습니다.\n\n지금 ZIP 백업을 만들까요?");
  if(!ok)return;
  backupBtn.disabled=true;backupBtn.textContent="ZIP 만드는 중…";
  try{
@@ -875,7 +891,7 @@ backupBtn.onclick=async()=>{
   const manifest={app:"SCENE BOX",version:3,format:"zip",createdAt:new Date().toISOString(),settings:{heroBackground:getBgSettings()},photos:meta};
   entries.unshift({name:"backup.json",data:new TextEncoder().encode(JSON.stringify(manifest,null,2))});
   const zip=await makeZip(entries);downloadBlob(zip,`scene-box-full-backup-${new Date().toISOString().slice(0,10)}.zip`);
-  alert("ZIP 전체 백업이 저장되었습니다. 이 파일 하나에 사진 원본과 모든 분류 정보가 들어 있습니다.");
+  alert("ZIP 전체 백업이 저장되었습니다. 이 파일 하나에 미디어 원본과 모든 분류 정보가 들어 있습니다.");
  }catch(err){alert("백업 중 오류가 발생했습니다: "+err.message)}finally{backupBtn.disabled=false;backupBtn.textContent="전체 백업"}
 };
 restoreBtn.onclick=()=>{
@@ -929,10 +945,10 @@ document.querySelector("#homeBtn").onclick=()=>{
 document.querySelector("#exportBtn").onclick=()=>{
  const ok=confirm("목록 CSV 안내\n\n사진 원본은 포함하지 않고 제목·원본 파일명·멤버·날짜·활동·태그·메모 같은 목록만 표 파일로 저장합니다. 엑셀이나 구글 스프레드시트에서 열 수 있습니다.\n\nCSV 목록을 저장할까요?");
  if(!ok)return;
- const rows=[["제목","원본 파일명","멤버","촬영일","활동","출처","태그","메모","최애"]];
- items.forEach(x=>rows.push([x.name,x.originalName||x.name,memberText(x),x.date,x.activity,x.source,(x.tags||[]).join("|"),x.note,x.fav?"Y":"N"]));
+ const rows=[["제목","원본 파일명","형식","멤버","촬영일","활동","출처","태그","메모","최애"]];
+ items.forEach(x=>rows.push([x.name,x.originalName||x.name,isVideo(x)?"동영상":isGif(x)?"GIF":"사진",memberText(x),x.date,x.activity,x.source,(x.tags||[]).join("|"),x.note,x.fav?"Y":"N"]));
  const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v||"").replaceAll('"','""')}"`).join(",")).join("\n");
- const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="scene-box-photo-list.csv";a.click();
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="scene-box-media-list.csv";a.click();
 };
 
 
