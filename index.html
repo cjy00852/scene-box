@@ -52,6 +52,10 @@ main{max-width:1200px;margin:auto;padding:20px 18px 90px}
 .stat{background:white;border:1px solid var(--line);border-radius:14px;padding:9px 12px;color:var(--muted)}
 .stat b{color:var(--ink)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.virtual-scroll{position:relative;width:100%;min-height:1px}
+.virtual-grid{position:absolute;left:0;right:0;top:0;will-change:transform}
+.virtual-hint{font-size:11px;color:var(--muted);margin:-4px 0 10px;padding-left:3px}
+
 body[data-photo-size="tiny"] .grid{grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:5px}
 body[data-photo-size="small"] .grid{grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:8px}
 body[data-photo-size="normal"] .grid{grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:11px}
@@ -387,6 +391,7 @@ async function compressBackground(file){
 }
 const DB_NAME="scene-box-db", STORE="photos";
 let db, items=[], memberFilters=new Set(), editingId=null, selected=new Set(), pendingFiles=[];
+let virtualState=null,virtualRAF=0,virtualUrls=[];
 
 function openDB(){
  return new Promise((resolve,reject)=>{
@@ -481,6 +486,61 @@ function memberCountFor(label,baseItems){
  return baseItems.filter(x=>memberMatches(x,new Set([label]))).length;
 }
 
+function revokeVirtualUrls(){for(const u of virtualUrls)URL.revokeObjectURL(u);virtualUrls=[]}
+function cardHTML(x){
+ const url=objectURL(x.blob);virtualUrls.push(url);
+ return `
+  <article class="card ${selected.has(x.id)?"selected-card":""}" data-id="${x.id}">
+   <input class="check" type="checkbox" ${selected.has(x.id)?"checked":""} aria-label="선택">
+   <button class="fav" aria-label="최애">${x.fav?"★":"☆"}</button>
+   <button class="view-photo" aria-label="크게 보기">⛶</button>
+   <img class="thumb" loading="lazy" decoding="async" src="${url}" alt="${esc(x.name)}">
+   <div class="cardbody">
+    <div class="name">${esc(x.name)}</div>
+    <div class="meta">${esc([memberText(x),x.date,x.activity].filter(Boolean).join(" · ")||"미분류")}</div>
+    <div class="tags">${isGif(x)?`<span class="bubble-badge">🎞️ GIF</span>`:""}${x.bubble?`<span class="bubble-badge">🫧 버블</span>`:""}${(x.tags||[]).slice(0,4).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
+   </div>
+  </article>`;
+}
+function gridMetrics(){
+ const size=document.body.dataset.photoSize||"small";
+ const gap={tiny:5,small:8,normal:11,large:16,list:8}[size]||8;
+ const min={tiny:82,small:125,normal:175,large:245,list:9999}[size]||125;
+ const w=Math.max(1,document.querySelector("#gallery").clientWidth||window.innerWidth-20);
+ const cols=size==="list"?1:Math.max(1,Math.floor((w+gap)/(min+gap)));
+ const colW=(w-gap*(cols-1))/cols;
+ const body={tiny:27,small:58,normal:82,large:88,list:0}[size]||58;
+ const rowH=size==="list"?120:(colW*1.25+body+gap);
+ return {cols,rowH,gap};
+}
+function renderVirtualWindow(force=false){
+ if(!virtualState)return;
+ cancelAnimationFrame(virtualRAF);
+ virtualRAF=requestAnimationFrame(()=>{
+  const state=virtualState, shell=document.querySelector("#virtualShell"), grid=document.querySelector("#virtualGrid");
+  if(!shell||!grid)return;
+  const m=gridMetrics(), totalRows=Math.ceil(state.arr.length/m.cols), totalH=Math.max(1,totalRows*m.rowH);
+  shell.style.height=totalH+"px";
+  const top=shell.getBoundingClientRect().top+window.scrollY;
+  const y=Math.max(0,window.scrollY-top);
+  const buffer=4;
+  const startRow=Math.max(0,Math.floor(y/m.rowH)-buffer);
+  const endRow=Math.min(totalRows,Math.ceil((y+window.innerHeight)/m.rowH)+buffer);
+  if(!force&&state.startRow===startRow&&state.endRow===endRow&&state.cols===m.cols)return;
+  state.startRow=startRow;state.endRow=endRow;state.cols=m.cols;
+  const start=startRow*m.cols,end=Math.min(state.arr.length,endRow*m.cols);
+  revokeVirtualUrls();
+  grid.style.transform=`translateY(${startRow*m.rowH}px)`;
+  grid.innerHTML=state.arr.slice(start,end).map(cardHTML).join("");
+ });
+}
+function startVirtualGallery(arr,headerHTML=""){
+ const g=document.querySelector("#gallery");
+ g.innerHTML=`${headerHTML}<div class="virtual-hint">가상 스크롤 사용 중 · 화면 근처 사진만 불러옵니다.</div><div id="virtualShell" class="virtual-scroll"><div id="virtualGrid" class="grid virtual-grid"></div></div>`;
+ virtualState={arr,startRow:-1,endRow:-1,cols:0};
+ renderVirtualWindow(true);
+}
+
 function render(){
  const acts=[...new Set(items.map(x=>x.activity).filter(Boolean))].sort();
  const af=document.querySelector("#activityFilter"), prev=af.value;
@@ -495,32 +555,17 @@ function render(){
  const arr=filtered(), favs=items.filter(x=>x.fav).length, un=items.filter(x=>!isGroup(x)&&getMembers(x).length===0).length, gifs=items.filter(isGif).length;
  document.querySelector("#stats").innerHTML=`<div class="stat">전체 <b>${items.length}</b></div><div class="stat">현재 보기 <b>${arr.length}</b></div><div class="stat">GIF <b>${gifs}</b></div><div class="stat">최애 <b>${favs}</b></div><div class="stat">미분류 <b>${un}</b></div>`;
  const g=document.querySelector("#gallery");
- if(!arr.length){g.innerHTML=`<div class="empty">${items.length?"조건에 맞는 사진이 없습니다.":"사진을 추가하면 여기에 예쁘게 정리됩니다."}</div>`;return}
- const cardHTML=x=>`
-  <article class="card ${selected.has(x.id)?"selected-card":""}" data-id="${x.id}">
-   <input class="check" type="checkbox" ${selected.has(x.id)?"checked":""} aria-label="선택">
-   <button class="fav" aria-label="최애">${x.fav?"★":"☆"}</button>
-   <button class="view-photo" aria-label="크게 보기">⛶</button>
-   <img class="thumb" src="${objectURL(x.blob)}" alt="${esc(x.name)}">
-   <div class="cardbody">
-    <div class="name">${esc(x.name)}</div>
-    <div class="meta">${esc([memberText(x),x.date,x.activity].filter(Boolean).join(" · ")||"미분류")}</div>
-    <div class="tags">${isGif(x)?`<span class="bubble-badge">🎞️ GIF</span>`:""}${x.bubble?`<span class="bubble-badge">🫧 버블</span>`:""}${(x.tags||[]).slice(0,4).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
-   </div>
-  </article>`;
- if(document.querySelector("#viewMode").value==="member"){
-  if(memberFilters.size){
-   const label=[...memberFilters].join(" · ");
-   g.innerHTML=`<section class="member-section"><div class="member-head"><h2>${esc(label)}</h2><span class="member-count">${arr.length}장</span></div><div class="grid">${arr.map(cardHTML).join("")}</div></section>`;
-  }else{
-   g.innerHTML=MEMBER_FILTERS.map(m=>{
-    const group=items.filter(x=>memberMatches(x,new Set([m])));
-    if(!group.length)return "";
-    return `<section class="member-section"><div class="member-head"><h2>${esc(m)}</h2><span class="member-count">${group.length}장</span></div><div class="grid">${group.map(cardHTML).join("")}</div><div class="member-divider"></div></section>`;
-   }).join("");
-  }
+ virtualState=null;revokeVirtualUrls();
+ if(!arr.length){g.innerHTML=`<div class="empty">${items.length?"조건에 맞는 사진이 없습니다.":"사진을 추가하면 여기에 예쁘게 정리됩니다."}</div>`;updateBulk();return}
+ if(document.querySelector("#viewMode").value==="member"&&!memberFilters.size){
+  g.innerHTML=MEMBER_FILTERS.map(m=>{
+   const group=items.filter(x=>memberMatches(x,new Set([m])));
+   if(!group.length)return "";
+   return `<section class="member-section"><div class="member-head"><h2>${esc(m)}</h2><span class="member-count">${group.length}장</span></div><div class="grid">${group.slice(0,120).map(cardHTML).join("")}</div>${group.length>120?`<div class="small" style="padding:8px 3px;color:var(--muted)">성능을 위해 이 구역은 처음 120장만 표시됩니다. 멤버 버튼을 누르면 전체를 가상 스크롤로 볼 수 있습니다.</div>`:""}<div class="member-divider"></div></section>`;
+  }).join("");
  }else{
-  g.innerHTML=`<div class="grid">${arr.map(cardHTML).join("")}</div>`;
+  const header=document.querySelector("#viewMode").value==="member"&&memberFilters.size?`<section class="member-section"><div class="member-head"><h2>${esc([...memberFilters].join(" · "))}</h2><span class="member-count">${arr.length}장</span></div></section>`:"";
+  startVirtualGallery(arr,header);
  }
  updateBulk();
 }
@@ -620,7 +665,7 @@ document.body.addEventListener("click",async e=>{
  openEdit(id);
 });
 ["search","sort","activityFilter","favFilter","mediaFilter","bubbleView","viewMode","dateFrom","dateTo"].forEach(id=>document.querySelector("#"+id).addEventListener(id==="search"?"input":"change",render));
-document.querySelector("#photoSize").addEventListener("change",e=>{document.body.dataset.photoSize=e.target.value;localStorage.setItem("sceneBoxPhotoSize",e.target.value);});
+document.querySelector("#photoSize").addEventListener("change",e=>{document.body.dataset.photoSize=e.target.value;localStorage.setItem("sceneBoxPhotoSize",e.target.value);render();});
 closeLightbox.onclick=()=>lightboxDialog.close();
 prevPhoto.onclick=()=>moveLightbox(-1);
 nextPhoto.onclick=()=>moveLightbox(1);
@@ -844,6 +889,9 @@ document.querySelector("#exportBtn").onclick=()=>{
  const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v||"").replaceAll('"','""')}"`).join(",")).join("\n");
  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="scene-box-photo-list.csv";a.click();
 };
+
+window.addEventListener("scroll",()=>{if(virtualState)renderVirtualWindow()},{passive:true});
+window.addEventListener("resize",()=>{if(virtualState)renderVirtualWindow(true)});
 
 (async()=>{
  const savedSize=localStorage.getItem("sceneBoxPhotoSize")||"small";
