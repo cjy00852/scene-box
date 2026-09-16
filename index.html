@@ -80,7 +80,7 @@ body[data-photo-size="small"] .tag{font-size:9px;padding:3px 5px}
 body[data-photo-size="small"] .fav{width:30px;height:30px;font-size:16px}
 body[data-photo-size="small"] .check{width:18px;height:18px}
 .card{position:relative;background:white;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 6px 18px rgba(67,42,98,.06)}
-.card.selected-card{outline:3px solid var(--accent);outline-offset:-3px}.card.selected-card::after{content:"✓";position:absolute;inset:0;background:rgba(92,62,177,.13);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:900;color:white;pointer-events:none;text-shadow:0 2px 8px rgba(0,0,0,.45)}
+.card.selected-card{outline:3px solid var(--accent);outline-offset:-3px}
 .thumb{aspect-ratio:4/5;background:#eee;display:block;width:100%;object-fit:cover}
 .cardbody{padding:11px}
 .name{font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -88,12 +88,9 @@ body[data-photo-size="small"] .check{width:18px;height:18px}
 .tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
 .tag{font-size:11px;background:#f2edfb;border-radius:999px;padding:4px 7px}
 .fav{position:absolute;right:9px;top:9px;border:0;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.88);font-size:20px}
-.view-photo{position:absolute;right:9px;bottom:74px;border:0;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.9);font-size:19px;box-shadow:0 4px 12px rgba(0,0,0,.16)}
 .lightbox-dialog{max-width:none;width:100vw;height:100dvh;border-radius:0;background:#0d0b12;color:white}
 .lightbox{height:100%;display:grid;grid-template-rows:auto 1fr auto;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));gap:10px}
 .lightbox-top,.lightbox-bottom{display:flex;align-items:center;gap:8px}.lightbox-title{min-width:0;flex:1;text-align:center;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lightbox-stage{position:relative;display:flex;align-items:center;justify-content:center;min-height:0;overflow:hidden}.lightbox-img,.lightbox-video{max-width:100%;max-height:100%;object-fit:contain;user-select:none}.lightbox-video{width:auto;height:auto;background:#000}.nav-photo{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:58px;border:0;border-radius:14px;background:rgba(255,255,255,.18);color:white;font-size:28px}.nav-photo.prev{left:4px}.nav-photo.next{right:4px}.lightbox-meta{flex:1;color:#c9c2d2;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lightbox .btn{white-space:nowrap}
-body[data-photo-size="tiny"] .view-photo{width:28px;height:28px;font-size:14px;right:4px;bottom:44px}
-body[data-photo-size="list"] .view-photo{bottom:8px;right:8px}
 .check{position:absolute;left:10px;top:10px;width:22px;height:22px;accent-color:var(--accent)}
 .empty{text-align:center;color:var(--muted);padding:55px 20px;border:1px dashed var(--line);border-radius:20px;background:rgba(255,255,255,.6)}
 .member-section{margin:0 0 28px}.member-head{display:flex;align-items:center;gap:10px;margin:0 0 11px;padding:0 3px}.member-head h2{margin:0;font-size:21px}.member-count{font-size:12px;color:var(--muted);background:white;border:1px solid var(--line);border-radius:999px;padding:5px 9px}.member-section.empty-group{opacity:.65}.member-divider{height:1px;background:linear-gradient(90deg,var(--line),transparent);margin:5px 0 18px}
@@ -152,6 +149,13 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 .crop-stage{position:relative;margin:12px auto;overflow:hidden;background:#222;touch-action:none;user-select:none}.crop-stage[hidden]{display:none}.crop-stage>img{display:block;width:100%;pointer-events:none}.crop-box{position:absolute;border:2px solid white;box-shadow:0 0 0 1000px rgba(0,0,0,.6);cursor:move;touch-action:none;background:linear-gradient(to right,transparent 33%,#ffffff70 33%,#ffffff70 33.3%,transparent 33.3%,transparent 66.6%,#ffffff70 66.6%,#ffffff70 67%,transparent 67%),linear-gradient(to bottom,transparent 33%,#ffffff70 33%,#ffffff70 33.3%,transparent 33.3%,transparent 66.6%,#ffffff70 66.6%,#ffffff70 67%,transparent 67%)}.crop-handle{position:absolute;width:28px;height:28px;min-width:0;padding:0;border:0;background:transparent;touch-action:none}.crop-handle::after{content:"";position:absolute;inset:7px;border:3px solid white;background:#58417e}.crop-handle.nw{left:-10px;top:-10px;cursor:nwse-resize}.crop-handle.ne{right:-10px;top:-10px;cursor:nesw-resize}.crop-handle.sw{left:-10px;bottom:-10px;cursor:nesw-resize}.crop-handle.se{right:-10px;bottom:-10px;cursor:nwse-resize}.hero-preview{cursor:default}
 .top{justify-content:space-between;gap:12px 20px}.header-actions{display:flex;align-items:center;gap:8px}.header-actions>.btn,.header-menu>summary{white-space:nowrap;min-height:42px;padding:10px 14px}.header-menu{position:relative}.header-menu>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px}.header-menu>summary::-webkit-details-marker{display:none}.header-menu[open]>summary{background:#ded3f5}.header-menu-panel{position:absolute;right:0;top:calc(100% + 8px);width:190px;padding:6px;display:grid;gap:3px;border:1px solid var(--line);border-radius:16px;background:white;box-shadow:var(--shadow);z-index:20}.header-menu-panel .btn{background:transparent;text-align:left;font-size:14px;font-weight:650}.header-menu-panel .btn:hover{background:#f2edfb}.gallery-toolbar{display:flex;justify-content:flex-end;gap:8px;margin:16px 0 0}.gallery-toolbar .field{width:auto;min-width:150px}.gallery-toolbar .btn{white-space:nowrap}.gallery-toolbar+.controls{margin-top:10px}
 @media(max-width:620px){.top{gap:10px}.top>.header-actions{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.header-actions:has(#installBtn:not([hidden])){grid-template-columns:repeat(4,minmax(0,1fr))}.header-actions>.btn,.header-menu>summary{width:100%;padding:10px 6px;font-size:13px;justify-content:center;gap:5px}.header-menu-panel{width:180px}.header-menu:first-of-type .header-menu-panel{right:auto;left:0}.subtitle{font-size:11px}.gallery-toolbar .field,.gallery-toolbar .btn{flex:1;min-width:0}}
+.photo-open{display:block;width:100%;padding:0;border:0;background:#eee;cursor:zoom-in;overflow:hidden}.cardbody{min-width:0}.card-footer{display:grid;grid-template-columns:22px minmax(0,1fr) 34px;gap:5px;align-items:center}.card-footer .check{position:static;margin:0;width:20px;height:20px}.card-footer .fav{position:static;width:34px;height:34px;border:0;background:transparent;border-radius:8px;font-size:23px;padding:0;color:var(--ink)}.card-footer .fav[aria-pressed="true"]{color:var(--accent)}.photo-open:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
+body[data-photo-size="small"] .card-footer,body[data-photo-size="tiny"] .card-footer{grid-template-columns:minmax(0,1fr) auto;gap:2px}
+body[data-photo-size="small"] .card-footer .name,body[data-photo-size="tiny"] .card-footer .name{grid-column:1/-1;grid-row:1}
+body[data-photo-size="small"] .card-footer .check,body[data-photo-size="tiny"] .card-footer .check{grid-row:2}
+body[data-photo-size="small"] .card-footer .fav,body[data-photo-size="tiny"] .card-footer .fav{grid-row:2;grid-column:2}
+body[data-photo-size="list"] .photo-open{width:92px;height:112px}
+@media(max-width:760px){body[data-photo-size="list"] .photo-open{width:78px;height:98px}}
 </style>
 </head>
 <body>
@@ -672,12 +676,13 @@ function observeGalleryMedia(){
 function cardHTML(x){
  return `
   <article class="card ${selected.has(x.id)?"selected-card":""}" data-id="${x.id}">
-   <input class="check" type="checkbox" ${selected.has(x.id)?"checked":""} aria-label="선택">
-   <button class="fav" aria-label="최애">${x.fav?"★":"☆"}</button>
-   <button class="view-photo" aria-label="크게 보기">⛶</button>
-   ${isVideo(x)?`<video class="thumb" data-media-id="${esc(String(x.id))}" muted playsinline preload="metadata"></video>`:`<img class="thumb" data-media-id="${esc(String(x.id))}" loading="lazy" decoding="async" alt="${esc(x.name)}">`}
+   <button type="button" class="photo-open" aria-label="크게 보기: ${esc(x.name)}">${isVideo(x)?`<video class="thumb" data-media-id="${esc(String(x.id))}" muted playsinline preload="metadata"></video>`:`<img class="thumb" data-media-id="${esc(String(x.id))}" loading="lazy" decoding="async" alt="${esc(x.name)}">`}</button>
    <div class="cardbody">
-    <div class="name">${esc(x.name)}</div>
+    <div class="card-footer">
+     <input class="check" type="checkbox" ${selected.has(x.id)?"checked":""} aria-label="사진 선택">
+     <div class="name">${esc(x.name)}</div>
+     <button type="button" class="fav" aria-label="최애 지정" aria-pressed="${!!x.fav}">${x.fav?"★":"☆"}</button>
+    </div>
     <div class="meta">${esc([memberText(x),x.date,x.activity].filter(Boolean).join(" · ")||"미분류")}</div>
     <div class="tags">${isVideo(x)?`<span class="video-badge">🎥 영상</span>`:""}${isGif(x)?`<span class="bubble-badge">🎞️ GIF</span>`:""}${x.bubble?`<span class="bubble-badge">🫧 버블</span>`:""}${x.membership?`<span class="bubble-badge">플챗맴버쉽</span>`:""}${(x.tags||[]).slice(0,4).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
    </div>
@@ -831,7 +836,7 @@ let suppressCardClickUntil=0;
 let longPressTimer=null,longPressCard=null,longPressStartX=0,longPressStartY=0;
 document.addEventListener("pointerdown",e=>{
  const card=e.target.closest(".card");
- if(!card||e.target.closest("button,input"))return;
+ if(!card||e.target.closest(".fav,input"))return;
  longPressCard=card;longPressStartX=e.clientX;longPressStartY=e.clientY;
  longPressTimer=setTimeout(()=>{
   const id=card.dataset.id;toggleCardSelection(id);suppressCardClickUntil=Date.now()+700;
@@ -856,7 +861,7 @@ document.body.addEventListener("click",async e=>{
  if(selected.size>0){e.preventDefault();toggleCardSelection(id);return}
  if(e.target.closest(".fav")){x.fav=!x.fav;await put(x);await load();return}
  if(e.target.matches(".check")){e.target.checked?selected.add(id):selected.delete(id);syncCardSelection();return}
- if(e.target.closest(".view-photo")||e.target.matches(".thumb")){showLightbox(id);return}
+ if(e.target.closest(".photo-open")){showLightbox(id);return}
  openEdit(id);
 });
 shuffleBtn.onclick=()=>{document.querySelector("#sort").value="random";resetRandomOrder();currentPage=1;render()};
