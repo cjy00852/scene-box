@@ -149,6 +149,8 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 .page-btn:disabled{opacity:.38;cursor:default}
 .page-size-select{border:1px solid var(--line);background:white;border-radius:10px;height:38px;padding:0 9px;font-weight:700}
 .crop-stage{position:relative;margin:12px auto;overflow:hidden;background:#222;touch-action:none;user-select:none}.crop-stage[hidden]{display:none}.crop-stage>img{display:block;width:100%;pointer-events:none}.crop-box{position:absolute;border:2px solid white;box-shadow:0 0 0 1000px rgba(0,0,0,.6);cursor:move;touch-action:none;background:linear-gradient(to right,transparent 33%,#ffffff70 33%,#ffffff70 33.3%,transparent 33.3%,transparent 66.6%,#ffffff70 66.6%,#ffffff70 67%,transparent 67%),linear-gradient(to bottom,transparent 33%,#ffffff70 33%,#ffffff70 33.3%,transparent 33.3%,transparent 66.6%,#ffffff70 66.6%,#ffffff70 67%,transparent 67%)}.crop-handle{position:absolute;width:28px;height:28px;min-width:0;padding:0;border:0;background:transparent;touch-action:none}.crop-handle::after{content:"";position:absolute;inset:7px;border:3px solid white;background:#58417e}.crop-handle.nw{left:-10px;top:-10px;cursor:nwse-resize}.crop-handle.ne{right:-10px;top:-10px;cursor:nesw-resize}.crop-handle.sw{left:-10px;bottom:-10px;cursor:nesw-resize}.crop-handle.se{right:-10px;bottom:-10px;cursor:nwse-resize}.hero-preview{cursor:default}
+.top{justify-content:space-between;gap:12px 20px}.header-actions{display:flex;align-items:center;gap:8px}.header-actions>.btn,.header-menu>summary{white-space:nowrap;min-height:42px;padding:10px 14px}.header-menu{position:relative}.header-menu>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px}.header-menu>summary::-webkit-details-marker{display:none}.header-menu[open]>summary{background:#ded3f5}.header-menu-panel{position:absolute;right:0;top:calc(100% + 8px);width:190px;padding:6px;display:grid;gap:3px;border:1px solid var(--line);border-radius:16px;background:white;box-shadow:var(--shadow);z-index:20}.header-menu-panel .btn{background:transparent;text-align:left;font-size:14px;font-weight:650}.header-menu-panel .btn:hover{background:#f2edfb}.gallery-toolbar{display:flex;justify-content:flex-end;gap:8px;margin:16px 0 0}.gallery-toolbar .field{width:auto;min-width:150px}.gallery-toolbar .btn{white-space:nowrap}.gallery-toolbar+.controls{margin-top:10px}
+@media(max-width:620px){.top{gap:10px}.top>.header-actions{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.header-actions:has(#installBtn:not([hidden])){grid-template-columns:repeat(4,minmax(0,1fr))}.header-actions>.btn,.header-menu>summary{width:100%;padding:10px 6px;font-size:13px;justify-content:center;gap:5px}.header-menu-panel{width:180px}.header-menu:first-of-type .header-menu-panel{right:auto;left:0}.subtitle{font-size:11px}.gallery-toolbar .field,.gallery-toolbar .btn{flex:1;min-width:0}}
 </style>
 </head>
 <body>
@@ -156,15 +158,16 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 <header>
  <div class="top">
   <div><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE · v12</div></div>
-  <div class="spacer"></div>
-  <button class="btn" id="homeBtn" title="전체 화면으로 돌아가기">⌂ 홈</button>
-  <button class="btn install" id="installBtn" hidden>앱 설치</button>
-  <button class="btn" id="backgroundBtn">상단 배경</button>
-  <button class="btn" id="pageBackgroundBtn">전체 배경</button>
-  <button class="btn" id="duplicateBtn">중복 정리</button>
-  <button class="btn" id="backupBtn">전체 백업</button>
-  <button class="btn" id="restoreBtn">복원</button>
-  <button class="btn" id="exportBtn">목록 CSV</button>
+  <nav class="header-actions" aria-label="앱 메뉴">
+   <button class="btn" id="homeBtn" title="전체 화면으로 돌아가기">⌂ 홈</button>
+   <details class="header-menu"><summary class="btn">배경 설정 <span aria-hidden="true">⌄</span></summary><div class="header-menu-panel">
+    <button class="btn" id="backgroundBtn">상단 배경</button><button class="btn" id="pageBackgroundBtn">전체 배경</button>
+   </div></details>
+   <details class="header-menu"><summary class="btn">관리 <span aria-hidden="true">⌄</span></summary><div class="header-menu-panel">
+    <button class="btn" id="duplicateBtn">중복 정리</button><button class="btn" id="backupBtn">전체 백업</button><button class="btn" id="restoreBtn">백업 복원</button><button class="btn" id="exportBtn">목록 CSV 내보내기</button>
+   </div></details>
+   <button class="btn install" id="installBtn" hidden>앱 설치</button>
+  </nav>
   <input id="fileInput" type="file" accept="image/*,video/*,.gif,.mp4,.webm,.mov,.m4v" multiple hidden>
   <input id="restoreInput" type="file" accept="application/zip,.zip,application/json,.json" hidden>
   <input id="backgroundInput" type="file" accept="image/*" hidden>
@@ -182,12 +185,13 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
   </div>
  </section>
 
+ <div class="gallery-toolbar">  <select class="field" id="sort" aria-label="사진 정렬">
+   <option value="new">최근 추가순</option><option value="old">오래된순</option>
+   <option value="dateDesc">촬영일 최신순</option><option value="name">이름순</option><option value="random" hidden>랜덤 보기</option>
+  </select><button class="btn primary" id="shuffleBtn" aria-pressed="false">⤨ 사진 랜덤</button></div>
  <div class="controls">
   <input class="field search" id="search" placeholder="파일명, 활동, 태그, 메모 검색">
-  <select class="field" id="sort">
-   <option value="new">최근 추가순</option><option value="old">오래된순</option>
-   <option value="dateDesc">촬영일 최신순</option><option value="name">이름순</option><option value="random">랜덤</option>
-  </select>
+
   <select class="field" id="activityFilter"><option value="">모든 활동</option></select>
   <select class="field" id="favFilter"><option value="">전체 미디어</option><option value="fav">★ 최애만</option><option value="untagged">미분류만</option></select>
   <select class="field" id="mediaFilter"><option value="">사진+GIF+영상 전체</option><option value="video">🎥 동영상만</option><option value="gif">🎞️ GIF만</option><option value="still">🖼️ 일반 사진만</option><option value="image">🖼️ 사진+GIF만</option></select>
@@ -701,6 +705,8 @@ function renderPagination(total){
  box.innerHTML=`<div class="pagination-wrap"><span class="pagination-info">총 ${total.toLocaleString()}장 · ${currentPage}/${pages}페이지</span><div class="page-buttons">${buttons.join("")}</div><select id="pageSizeSelect" class="page-size-select" aria-label="한 페이지 사진 수"><option value="50" ${pageSize===50?"selected":""}>50장씩</option><option value="100" ${pageSize===100?"selected":""}>100장씩</option><option value="200" ${pageSize===200?"selected":""}>200장씩</option></select></div>`;
 }
 function render(){
+ const randomView=document.querySelector("#sort").value==="random";
+ shuffleBtn.setAttribute("aria-pressed",String(randomView));shuffleBtn.textContent=randomView?"⤨ 다시 섞기":"⤨ 사진 랜덤";
  const acts=[...new Set(items.map(x=>x.activity).filter(Boolean))].sort();
  const af=document.querySelector("#activityFilter"), prev=af.value;
  af.innerHTML='<option value="">모든 활동</option>'+acts.map(a=>`<option>${esc(a)}</option>`).join("");
@@ -852,6 +858,14 @@ document.body.addEventListener("click",async e=>{
  if(e.target.closest(".view-photo")||e.target.matches(".thumb")){showLightbox(id);return}
  openEdit(id);
 });
+shuffleBtn.onclick=()=>{document.querySelector("#sort").value="random";resetRandomOrder();currentPage=1;render()};
+const headerMenus=[...document.querySelectorAll(".header-menu")];
+headerMenus.forEach(menu=>{
+ menu.addEventListener("toggle",()=>{if(menu.open)headerMenus.forEach(other=>{if(other!==menu)other.open=false})});
+ menu.addEventListener("click",e=>{if(e.target.closest("button"))menu.open=false});
+});
+document.addEventListener("click",e=>{headerMenus.forEach(menu=>{if(!menu.contains(e.target))menu.open=false})});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")headerMenus.forEach(menu=>{if(menu.open){menu.open=false;menu.querySelector("summary").focus()}})});
 ["search","sort","activityFilter","favFilter","mediaFilter","bubbleView","viewMode","dateFrom","dateTo"].forEach(id=>document.querySelector("#"+id).addEventListener(id==="search"?"input":"change",()=>{if(id==="sort")resetRandomOrder();currentPage=1;render()}));
 document.querySelector("#photoSize").addEventListener("change",e=>{document.body.dataset.photoSize=e.target.value;localStorage.setItem("sceneBoxPhotoSize",e.target.value);currentPage=1;render();});
 document.querySelector("#pagination").addEventListener("click",e=>{
