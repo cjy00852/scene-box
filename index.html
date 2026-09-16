@@ -148,6 +148,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 .page-btn.active{background:var(--ink);color:white;border-color:var(--ink)}
 .page-btn:disabled{opacity:.38;cursor:default}
 .page-size-select{border:1px solid var(--line);background:white;border-radius:10px;height:38px;padding:0 9px;font-weight:700}
+.crop-stage{position:relative;margin:12px auto;overflow:hidden;background:#222;touch-action:none;user-select:none}.crop-stage[hidden]{display:none}.crop-stage>img{display:block;width:100%;pointer-events:none}.crop-box{position:absolute;border:2px solid white;box-shadow:0 0 0 1000px rgba(0,0,0,.6);cursor:move;touch-action:none;background:linear-gradient(to right,transparent 33%,#ffffff70 33%,#ffffff70 33.3%,transparent 33.3%,transparent 66.6%,#ffffff70 66.6%,#ffffff70 67%,transparent 67%),linear-gradient(to bottom,transparent 33%,#ffffff70 33%,#ffffff70 33.3%,transparent 33.3%,transparent 66.6%,#ffffff70 66.6%,#ffffff70 67%,transparent 67%)}.crop-handle{position:absolute;width:28px;height:28px;min-width:0;padding:0;border:0;background:transparent;touch-action:none}.crop-handle::after{content:"";position:absolute;inset:7px;border:3px solid white;background:#58417e}.crop-handle.nw{left:-10px;top:-10px;cursor:nwse-resize}.crop-handle.ne{right:-10px;top:-10px;cursor:nesw-resize}.crop-handle.sw{left:-10px;bottom:-10px;cursor:nesw-resize}.crop-handle.se{right:-10px;bottom:-10px;cursor:nwse-resize}.hero-preview{cursor:default}
 </style>
 </head>
 <body>
@@ -221,15 +222,14 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 <dialog id="backgroundDialog">
  <div class="modal">
   <h2 id="backgroundTitle">상단 배경 설정</h2>
-  <div id="heroPreview" class="hero-preview hero" tabindex="0" role="img" aria-label="배경 사진 위치 조절. 드래그하거나 방향키로 이동하세요."></div>
-  <div class="hint">사진을 드래그해 위치를 맞추세요. 방향키로도 이동할 수 있습니다.</div>
-  <div class="setting-row"><label for="bgScale"><b>사진 크기</b></label><input type="range" id="bgScale" min="25" max="250" step="5" value="100"><output id="bgScaleOut" for="bgScale">100%</output></div>
-  <div class="hint">100%는 배경을 채우는 크기입니다. 줄이거나 확대해 조절하세요.</div>
+  <div id="cropStage" class="crop-stage" hidden><img id="cropImage" alt="배경 원본 사진" draggable="false"><div id="cropBox" class="crop-box" tabindex="0" aria-label="자를 영역. 드래그 또는 방향키로 이동"><button class="crop-handle nw" data-corner="nw" aria-label="왼쪽 위 모서리"></button><button class="crop-handle ne" data-corner="ne" aria-label="오른쪽 위 모서리"></button><button class="crop-handle sw" data-corner="sw" aria-label="왼쪽 아래 모서리"></button><button class="crop-handle se" data-corner="se" aria-label="오른쪽 아래 모서리"></button></div></div>
+  <div class="hint">테두리 안을 끌어 위치를 옮기고, 모서리를 끌어 자를 범위를 조절하세요. 배경 비율은 자동으로 유지됩니다.</div>
+  <div class="hint">적용 미리보기</div><div id="heroPreview" class="hero-preview hero"></div>
   <div class="setting-row"><b>어둡기</b><input type="range" id="bgDim" min="0" max="80" value="42"><output id="bgDimOut">42%</output></div>
   <div class="setting-row"><b>흐림</b><input type="range" id="bgBlur" min="0" max="20" value="0"><output id="bgBlurOut">0px</output></div>
   <div class="hint">배경은 이 기기에 저장되며 전체 백업 ZIP에도 포함됩니다.</div>
   <div class="actions">
-   <button class="btn" id="centerBackground">위치 초기화</button>
+   <button class="btn" id="centerBackground">선택 영역 초기화</button>
    <button class="btn danger" id="removeBackground">배경 삭제</button>
    <button class="btn" id="chooseBackground">사진 선택</button>
    <button class="btn" id="closeBackground">닫기</button>
@@ -386,7 +386,7 @@ function applyPageBackground(){
 }
 const SETTINGS_STORE="settings";
 let pendingBackgroundData=null;
-let bgPanX=0,bgPanY=0,bgDrag=null;
+let bgCrop=null,bgDrag=null;
 const backgroundViews=new WeakMap();
 let bgSettingsCache={};
 function getBgSettings(){return bgSettingsCache||{}}
@@ -415,6 +415,12 @@ function layoutBackground(target){
  const v=backgroundViews.get(target), img=target.querySelector(":scope > .hero-background");
  if(!v||!img?.naturalWidth)return;
  const w=target.clientWidth,h=target.clientHeight;
+ if(v.crop){
+  const c=v.crop,scale=Math.max(w/(img.naturalWidth*c.w),h/(img.naturalHeight*c.h));
+  img.style.width=img.naturalWidth*scale+"px";img.style.height=img.naturalHeight*scale+"px";
+  img.style.left=(w/2+(.5-c.x-c.w/2)*img.naturalWidth*scale)+"px";
+  img.style.top=(h/2+(.5-c.y-c.h/2)*img.naturalHeight*scale)+"px";return;
+ }
  const scale=Math.max(w/img.naturalWidth,h/img.naturalHeight)*(v.scale??100)/100;
  img.style.width=img.naturalWidth*scale+"px";img.style.height=img.naturalHeight*scale+"px";
  img.style.left=(50+(v.panX??0))+"%";img.style.top=(50+(v.panY??0))+"%";
@@ -439,38 +445,56 @@ function syncBackgroundPreviewSize(){
  heroPreview.classList.toggle("page-preview",editingPageBackground);
 }
 function applyBackground(v=getBgSettings()){paintBackground(document.querySelector("main > .hero"),v)}
+function currentBackgroundSource(){const v=getEditingBgSettings();return pendingBackgroundData===null?(v.sourceDataUrl||v.dataUrl||""):pendingBackgroundData}
+function cropRatio(){const hero=document.querySelector("main > .hero");return (editingPageBackground?innerWidth/innerHeight:hero.clientWidth/hero.clientHeight)/(cropImage.naturalWidth/cropImage.naturalHeight)}
+function resetCrop(){if(!cropImage.naturalWidth)return;const k=cropRatio(),w=Math.min(1,k),h=w/k;bgCrop={x:(1-w)/2,y:(1-h)/2,w,h};updateBgPreview()}
 function updateBgPreview(){
- const current=getEditingBgSettings(),data=pendingBackgroundData===null?current.dataUrl:pendingBackgroundData;
- syncBackgroundPreviewSize();
- paintBackground(heroPreview,{dataUrl:data,scale:Number(bgScale.value),dim:Number(bgDim.value),blur:Number(bgBlur.value),panX:bgPanX,panY:bgPanY});
- bgScaleOut.value=bgScale.value+'%';bgDimOut.value=bgDim.value+'%';bgBlurOut.value=bgBlur.value+'px';
+ const data=currentBackgroundSource();syncBackgroundPreviewSize();
+ cropStage.hidden=!data;
+ if(data&&cropImage.getAttribute("src")!==data){cropImage.src=data;saveBackground.disabled=true}
+ if(data&&cropImage.complete&&cropImage.naturalWidth&&!bgCrop){resetCrop();return}
+ if(data&&cropImage.naturalWidth){cropStage.style.width="min(100%, "+(320*cropImage.naturalWidth/cropImage.naturalHeight)+"px)"}
+ if(bgCrop){Object.assign(cropBox.style,{left:bgCrop.x*100+"%",top:bgCrop.y*100+"%",width:bgCrop.w*100+"%",height:bgCrop.h*100+"%"})}
+ paintBackground(heroPreview,{dataUrl:data,crop:bgCrop,dim:Number(bgDim.value),blur:Number(bgBlur.value)});
+ bgDimOut.value=bgDim.value+'%';bgBlurOut.value=bgBlur.value+'px';
 }
+cropImage.onload=()=>{saveBackground.disabled=false;if(!bgCrop)resetCrop();else updateBgPreview()};
+cropImage.onerror=()=>{saveBackground.disabled=true;alert("사진을 불러오지 못했습니다. 다른 사진을 선택해주세요.")};
 const backgroundResizeObserver=new ResizeObserver(entries=>{
  for(const {target} of entries)layoutBackground(target);
  if(backgroundDialog.open)syncBackgroundPreviewSize();
 });
-backgroundResizeObserver.observe(document.querySelector("main > .hero"));
-backgroundResizeObserver.observe(heroPreview);
-backgroundResizeObserver.observe(pageBackground);
+backgroundResizeObserver.observe(document.querySelector("main > .hero"));backgroundResizeObserver.observe(heroPreview);backgroundResizeObserver.observe(pageBackground);
 window.addEventListener("resize",()=>{if(backgroundDialog.open)syncBackgroundPreviewSize()});
-function moveBackground(x,y){bgPanX=Math.max(-100,Math.min(100,x));bgPanY=Math.max(-100,Math.min(100,y));updateBgPreview()}
-heroPreview.addEventListener("pointerdown",e=>{
- if(!e.isPrimary||e.button!==0||!heroPreview.querySelector(".hero-background"))return;
- bgDrag={id:e.pointerId,x:e.clientX,y:e.clientY,panX:bgPanX,panY:bgPanY};
- heroPreview.setPointerCapture(e.pointerId);heroPreview.classList.add("dragging");e.preventDefault();
+function moveCrop(x,y){bgCrop.x=Math.max(0,Math.min(1-bgCrop.w,x));bgCrop.y=Math.max(0,Math.min(1-bgCrop.h,y));updateBgPreview()}
+cropBox.addEventListener("pointerdown",e=>{
+ if(!e.isPrimary||e.button!==0||!bgCrop)return;
+ bgDrag={id:e.pointerId,x:e.clientX,y:e.clientY,crop:{...bgCrop},corner:e.target.closest("[data-corner]")?.dataset.corner};
+ cropBox.setPointerCapture(e.pointerId);e.preventDefault();
 });
-heroPreview.addEventListener("pointermove",e=>{
+cropBox.addEventListener("pointermove",e=>{
  if(!bgDrag||bgDrag.id!==e.pointerId)return;
- moveBackground(bgDrag.panX+(e.clientX-bgDrag.x)/heroPreview.clientWidth*100,bgDrag.panY+(e.clientY-bgDrag.y)/heroPreview.clientHeight*100);
+ const d=bgDrag,c=d.crop,dx=(e.clientX-d.x)/cropStage.clientWidth,dy=(e.clientY-d.y)/cropStage.clientHeight;
+ if(!d.corner){moveCrop(c.x+dx,c.y+dy);return}
+ const right=d.corner.includes("e"),bottom=d.corner.includes("s"),ax=right?c.x:c.x+c.w,ay=bottom?c.y:c.y+c.h,k=c.w/c.h;
+ const maxW=Math.min(right?1-ax:ax,(bottom?1-ay:ay)*k);
+ const desired=(c.w+(right?dx:-dx)+(c.h+(bottom?dy:-dy))*k)/2;
+ const w=Math.min(maxW,Math.max(Math.min(.04,maxW),desired)),h=w/k;
+ bgCrop={x:right?ax:ax-w,y:bottom?ay:ay-h,w,h};updateBgPreview();
 });
-function endBackgroundDrag(){bgDrag=null;heroPreview.classList.remove("dragging")}
-for(const event of ["pointerup","pointercancel","lostpointercapture"])heroPreview.addEventListener(event,endBackgroundDrag);
+function endBackgroundDrag(){bgDrag=null}
+for(const event of ["pointerup","pointercancel","lostpointercapture"])cropBox.addEventListener(event,endBackgroundDrag);
 backgroundDialog.addEventListener("close",endBackgroundDrag);
-heroPreview.addEventListener("keydown",e=>{
- const directions={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]},delta=directions[e.key];
- if(!delta)return;e.preventDefault();moveBackground(bgPanX+delta[0]*(e.shiftKey?5:1),bgPanY+delta[1]*(e.shiftKey?5:1));
-});
-centerBackground.onclick=()=>moveBackground(0,0);
+cropBox.addEventListener("keydown",e=>{const d={ArrowLeft:[-.01,0],ArrowRight:[.01,0],ArrowUp:[0,-.01],ArrowDown:[0,.01]}[e.key];if(d&&bgCrop){e.preventDefault();moveCrop(bgCrop.x+d[0],bgCrop.y+d[1])}});
+centerBackground.onclick=resetCrop;
+async function croppedBackground(){
+ const source=currentBackgroundSource();if(!source)return {dataUrl:""};
+ await cropImage.decode();if(!bgCrop)resetCrop();
+ const c=bgCrop,sw=c.w*cropImage.naturalWidth,sh=c.h*cropImage.naturalHeight,ratio=Math.min(1,1920/sw,1920/sh),canvas=document.createElement("canvas");
+ canvas.width=Math.max(1,Math.round(sw*ratio));canvas.height=Math.max(1,Math.round(sh*ratio));
+ canvas.getContext("2d").drawImage(cropImage,c.x*cropImage.naturalWidth,c.y*cropImage.naturalHeight,sw,sh,0,0,canvas.width,canvas.height);
+ return {dataUrl:canvas.toDataURL("image/jpeg",.9),sourceDataUrl:source,sourceCrop:{...c}};
+}
 async function compressBackground(file){
  const img=await createImageBitmap(file), maxW=1600,maxH=900,scale=Math.min(1,maxW/img.width,maxH/img.height);
  const c=document.createElement("canvas");c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
@@ -992,19 +1016,20 @@ function readStoredZip(buffer){
  }
  return files;
 }
-function openBackgroundSettings(page=false){editingPageBackground=page;const v=getEditingBgSettings();backgroundTitle.textContent=page?"전체 배경 설정":"상단 배경 설정";pendingBackgroundData=null;bgDim.value=v.dim??42;bgBlur.value=v.blur??0;bgScale.value=v.scale??100;bgPanX=v.panX??0;bgPanY=v.panY??0;backgroundDialog.showModal();updateBgPreview()};
+function openBackgroundSettings(page=false){editingPageBackground=page;const v=getEditingBgSettings();backgroundTitle.textContent=page?"전체 배경 설정":"상단 배경 설정";pendingBackgroundData=null;bgDim.value=v.dim??42;bgBlur.value=v.blur??0;bgCrop=v.sourceCrop?{...v.sourceCrop}:null;saveBackground.disabled=false;backgroundDialog.showModal();updateBgPreview();if(!bgCrop&&cropImage.complete&&cropImage.naturalWidth&&cropImage.getAttribute("src")===currentBackgroundSource())resetCrop()};
 backgroundBtn.onclick=()=>openBackgroundSettings(false);
 pageBackgroundBtn.onclick=()=>openBackgroundSettings(true);
 chooseBackground.onclick=()=>backgroundInput.click();
-backgroundInput.onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{pendingBackgroundData=await compressBackground(f);bgPanX=0;bgPanY=0;updateBgPreview()}catch(err){alert("배경 사진을 불러오지 못했습니다: "+err.message)}finally{backgroundInput.value=""}};
-bgScale.oninput=updateBgPreview;bgDim.oninput=updateBgPreview;bgBlur.oninput=updateBgPreview;
-removeBackground.onclick=()=>{pendingBackgroundData="";updateBgPreview()};
+backgroundInput.onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{pendingBackgroundData=await compressBackground(f);bgCrop=null;updateBgPreview()}catch(err){alert("배경 사진을 불러오지 못했습니다: "+err.message)}finally{backgroundInput.value=""}};
+bgDim.oninput=updateBgPreview;bgBlur.oninput=updateBgPreview;
+removeBackground.onclick=()=>{pendingBackgroundData="";bgCrop=null;saveBackground.disabled=false;updateBgPreview()};
 closeBackground.onclick=()=>backgroundDialog.close();
 saveBackground.onclick=async()=>{
  const old=getEditingBgSettings();
  saveBackground.disabled=true;
  try{
-  await (editingPageBackground?setPageBgSettings:setBgSettings)({dataUrl:pendingBackgroundData===null?(old.dataUrl||""):pendingBackgroundData,dim:Number(bgDim.value),blur:Number(bgBlur.value),scale:Number(bgScale.value),panX:bgPanX,panY:bgPanY});
+  const cropped=await croppedBackground();
+  await (editingPageBackground?setPageBgSettings:setBgSettings)({...cropped,dim:Number(bgDim.value),blur:Number(bgBlur.value)});
   backgroundDialog.close();
   alert("배경이 기기에 고정 저장되었습니다.");
  }catch(err){alert("배경 저장에 실패했습니다: "+err.message)}finally{saveBackground.disabled=false}
