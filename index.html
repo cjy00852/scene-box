@@ -17,7 +17,7 @@
   --shadow:0 12px 35px rgba(67,42,98,.12)
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;background:linear-gradient(160deg,#faf7ff,#fff7fb);color:var(--ink)}
+body{isolation:isolate;min-height:100dvh;margin:0;font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;background:linear-gradient(160deg,#faf7ff,#fff7fb);color:var(--ink)}
 button,input,select,textarea{font:inherit}
 button{cursor:pointer}
 header{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.86);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
@@ -35,6 +35,9 @@ main{max-width:1200px;margin:auto;padding:20px 18px 90px}
 .hero{--hero-bg:none;--hero-dim:.42;--hero-blur:0px;position:relative;overflow:hidden;background:linear-gradient(135deg,#2c2141,#58417e);color:#fff;border-radius:20px;padding:16px 18px;box-shadow:var(--shadow);display:grid;grid-template-columns:1fr 1.35fr;gap:14px;align-items:stretch}
 .hero>.hero-background{position:absolute;z-index:0;left:50%;top:50%;max-width:none;pointer-events:none;transform:translate(-50%,-50%);filter:blur(var(--hero-blur));user-select:none}
 .hero-preview{touch-action:none;cursor:grab;user-select:none}.hero-preview.dragging{cursor:grabbing}.hero-preview:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.page-background.hero{position:fixed;inset:0;z-index:-1;pointer-events:none;padding:0;border-radius:0;box-shadow:none;background:linear-gradient(160deg,#faf7ff,#fff7fb)}
+.page-background[hidden]{display:none}
+.hero-preview.page-preview{background:linear-gradient(160deg,#faf7ff,#fff7fb)}
 .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(44,33,65,var(--hero-dim)),rgba(88,65,126,var(--hero-dim)));z-index:1}
 .hero>*{position:relative;z-index:2}
 .hero h1{font-size:clamp(24px,3.5vw,38px);line-height:1.08;margin:0 0 7px}
@@ -148,13 +151,15 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 </style>
 </head>
 <body>
+<div id="pageBackground" class="page-background hero" aria-hidden="true" hidden></div>
 <header>
  <div class="top">
   <div><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE · v12</div></div>
   <div class="spacer"></div>
   <button class="btn" id="homeBtn" title="전체 화면으로 돌아가기">⌂ 홈</button>
   <button class="btn install" id="installBtn" hidden>앱 설치</button>
-  <button class="btn" id="backgroundBtn">배경 설정</button>
+  <button class="btn" id="backgroundBtn">상단 배경</button>
+  <button class="btn" id="pageBackgroundBtn">전체 배경</button>
   <button class="btn" id="duplicateBtn">중복 정리</button>
   <button class="btn" id="backupBtn">전체 백업</button>
   <button class="btn" id="restoreBtn">복원</button>
@@ -215,7 +220,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 
 <dialog id="backgroundDialog">
  <div class="modal">
-  <h2>상단 배경 설정</h2>
+  <h2 id="backgroundTitle">상단 배경 설정</h2>
   <div id="heroPreview" class="hero-preview hero" tabindex="0" role="img" aria-label="배경 사진 위치 조절. 드래그하거나 방향키로 이동하세요."></div>
   <div class="hint">사진을 드래그해 위치를 맞추세요. 방향키로도 이동할 수 있습니다.</div>
   <div class="setting-row"><label for="bgScale"><b>사진 크기</b></label><input type="range" id="bgScale" min="25" max="250" step="5" value="100"><output id="bgScaleOut" for="bgScale">100%</output></div>
@@ -366,6 +371,19 @@ function togglePickerButton(btn){
  }
 }
 const BG_KEY="scene-box-hero-bg-v2";
+const PAGE_BG_KEY="scene-box-page-bg-v1";
+let pageBgSettingsCache={},editingPageBackground=false;
+function getPageBgSettings(){return pageBgSettingsCache}
+function getEditingBgSettings(){return editingPageBackground?getPageBgSettings():getBgSettings()}
+async function setPageBgSettings(v){
+ const value=v||{};
+ await reqP(db.transaction(SETTINGS_STORE,"readwrite").objectStore(SETTINGS_STORE).put({key:PAGE_BG_KEY,value,updatedAt:Date.now()}));
+ pageBgSettingsCache=value;applyPageBackground();
+}
+function applyPageBackground(){
+ pageBackground.hidden=!pageBgSettingsCache.dataUrl;
+ paintBackground(pageBackground,pageBgSettingsCache);
+}
 const SETTINGS_STORE="settings";
 let pendingBackgroundData=null;
 let bgPanX=0,bgPanY=0,bgDrag=null;
@@ -381,6 +399,8 @@ async function loadBgSettings(){
   if(Object.keys(bgSettingsCache).length)await saveBgSettingsToDB(bgSettingsCache);
  }
  applyBackground(bgSettingsCache);
+ const pageSaved=await reqP(db.transaction(SETTINGS_STORE,"readonly").objectStore(SETTINGS_STORE).get(PAGE_BG_KEY));
+ pageBgSettingsCache=pageSaved?.value||{};applyPageBackground();
 }
 async function saveBgSettingsToDB(v){
  await reqP(db.transaction(SETTINGS_STORE,"readwrite").objectStore(SETTINGS_STORE).put({key:BG_KEY,value:v,updatedAt:Date.now()}));
@@ -412,11 +432,15 @@ function paintBackground(target,v){
 function syncBackgroundPreviewSize(){
  const hero=document.querySelector("main > .hero");
  heroPreview.style.height="auto";heroPreview.style.minHeight="0";heroPreview.style.padding="0";
- heroPreview.style.aspectRatio=hero.clientWidth+" / "+hero.clientHeight;
+ const ratio=editingPageBackground?window.innerWidth/window.innerHeight:hero.clientWidth/hero.clientHeight;
+ heroPreview.style.aspectRatio=String(ratio);
+ heroPreview.style.width=editingPageBackground?"min(100%, "+(260*ratio)+"px)":"100%";
+ heroPreview.style.marginInline="auto";
+ heroPreview.classList.toggle("page-preview",editingPageBackground);
 }
 function applyBackground(v=getBgSettings()){paintBackground(document.querySelector("main > .hero"),v)}
 function updateBgPreview(){
- const current=getBgSettings(),data=pendingBackgroundData===null?current.dataUrl:pendingBackgroundData;
+ const current=getEditingBgSettings(),data=pendingBackgroundData===null?current.dataUrl:pendingBackgroundData;
  syncBackgroundPreviewSize();
  paintBackground(heroPreview,{dataUrl:data,scale:Number(bgScale.value),dim:Number(bgDim.value),blur:Number(bgBlur.value),panX:bgPanX,panY:bgPanY});
  bgScaleOut.value=bgScale.value+'%';bgDimOut.value=bgDim.value+'%';bgBlurOut.value=bgBlur.value+'px';
@@ -427,6 +451,8 @@ const backgroundResizeObserver=new ResizeObserver(entries=>{
 });
 backgroundResizeObserver.observe(document.querySelector("main > .hero"));
 backgroundResizeObserver.observe(heroPreview);
+backgroundResizeObserver.observe(pageBackground);
+window.addEventListener("resize",()=>{if(backgroundDialog.open)syncBackgroundPreviewSize()});
 function moveBackground(x,y){bgPanX=Math.max(-100,Math.min(100,x));bgPanY=Math.max(-100,Math.min(100,y));updateBgPreview()}
 heroPreview.addEventListener("pointerdown",e=>{
  if(!e.isPrimary||e.button!==0||!heroPreview.querySelector(".hero-background"))return;
@@ -966,17 +992,19 @@ function readStoredZip(buffer){
  }
  return files;
 }
-backgroundBtn.onclick=()=>{const v=getBgSettings();pendingBackgroundData=null;bgDim.value=v.dim??42;bgBlur.value=v.blur??0;bgScale.value=v.scale??100;bgPanX=v.panX??0;bgPanY=v.panY??0;backgroundDialog.showModal();updateBgPreview()};
+function openBackgroundSettings(page=false){editingPageBackground=page;const v=getEditingBgSettings();backgroundTitle.textContent=page?"전체 배경 설정":"상단 배경 설정";pendingBackgroundData=null;bgDim.value=v.dim??42;bgBlur.value=v.blur??0;bgScale.value=v.scale??100;bgPanX=v.panX??0;bgPanY=v.panY??0;backgroundDialog.showModal();updateBgPreview()};
+backgroundBtn.onclick=()=>openBackgroundSettings(false);
+pageBackgroundBtn.onclick=()=>openBackgroundSettings(true);
 chooseBackground.onclick=()=>backgroundInput.click();
 backgroundInput.onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{pendingBackgroundData=await compressBackground(f);bgPanX=0;bgPanY=0;updateBgPreview()}catch(err){alert("배경 사진을 불러오지 못했습니다: "+err.message)}finally{backgroundInput.value=""}};
 bgScale.oninput=updateBgPreview;bgDim.oninput=updateBgPreview;bgBlur.oninput=updateBgPreview;
 removeBackground.onclick=()=>{pendingBackgroundData="";updateBgPreview()};
 closeBackground.onclick=()=>backgroundDialog.close();
 saveBackground.onclick=async()=>{
- const old=getBgSettings();
+ const old=getEditingBgSettings();
  saveBackground.disabled=true;
  try{
-  await setBgSettings({dataUrl:pendingBackgroundData===null?(old.dataUrl||""):pendingBackgroundData,dim:Number(bgDim.value),blur:Number(bgBlur.value),scale:Number(bgScale.value),panX:bgPanX,panY:bgPanY});
+  await (editingPageBackground?setPageBgSettings:setBgSettings)({dataUrl:pendingBackgroundData===null?(old.dataUrl||""):pendingBackgroundData,dim:Number(bgDim.value),blur:Number(bgBlur.value),scale:Number(bgScale.value),panX:bgPanX,panY:bgPanY});
   backgroundDialog.close();
   alert("배경이 기기에 고정 저장되었습니다.");
  }catch(err){alert("배경 저장에 실패했습니다: "+err.message)}finally{saveBackground.disabled=false}
@@ -994,7 +1022,7 @@ backupBtn.onclick=async()=>{
    entries.push({name:fileName,data:await x.blob.arrayBuffer()});
    const copy={...x,photoFile:fileName,mimeType:x.blob.type};delete copy.blob;meta.push(copy);n++;
   }
-  const manifest={app:"SCENE BOX",version:3,format:"zip",createdAt:new Date().toISOString(),settings:{heroBackground:getBgSettings()},photos:meta};
+  const manifest={app:"SCENE BOX",version:3,format:"zip",createdAt:new Date().toISOString(),settings:{heroBackground:getBgSettings(),pageBackground:getPageBgSettings()},photos:meta};
   entries.unshift({name:"backup.json",data:new TextEncoder().encode(JSON.stringify(manifest,null,2))});
   const zip=await makeZip(entries);downloadBlob(zip,`scene-box-full-backup-${new Date().toISOString().slice(0,10)}.zip`);
   alert("ZIP 전체 백업이 저장되었습니다. 이 파일 하나에 미디어 원본과 모든 분류 정보가 들어 있습니다.");
@@ -1014,11 +1042,13 @@ restoreInput.onchange=async e=>{
    if(data.app!=="SCENE BOX"||!Array.isArray(data.photos))throw new Error("SCENE BOX 백업 파일이 아닙니다.");
    if(!confirm(`${data.photos.length}장의 사진을 복원할까요?`))return;
    if(data.settings?.heroBackground)await setBgSettings(data.settings.heroBackground);
+   if(data.settings?.pageBackground)await setPageBgSettings(data.settings.pageBackground);
    for(const p of data.photos){const bytes=files.get(p.photoFile);if(!bytes)continue;const item={...p,blob:new Blob([bytes],{type:p.mimeType||"image/jpeg"})};delete item.photoFile;delete item.mimeType;await put(item)}
    await load();alert("ZIP 복원이 완료되었습니다.");
   }else{
    const data=JSON.parse(await file.text());
    if(data.settings?.heroBackground)await setBgSettings(data.settings.heroBackground);
+   if(data.settings?.pageBackground)await setPageBgSettings(data.settings.pageBackground);
    if(data.app!=="SCENE BOX"||!Array.isArray(data.photos))throw new Error("SCENE BOX 백업 파일이 아닙니다.");
    if(!confirm(`${data.photos.length}장의 예전 JSON 백업을 복원할까요?`))return;
    for(const p of data.photos){const item={...p,blob:dataURLToBlob(p.blobData)};delete item.blobData;await put(item)}
