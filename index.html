@@ -222,6 +222,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
  <button class="btn primary" id="bulkApplyMembers">멤버 적용</button>
  <button class="btn" id="bulkBubble">🫧 버블 지정/해제</button>
  <button class="btn" id="bulkMembership">플챗맴버쉽 지정/해제</button>
+ <button class="btn primary" id="bulkShare">선택 공유 (카톡 등)</button>
  <button class="btn primary" id="bulkDownload">선택 다운로드 (ZIP)</button>
  <button class="btn danger" id="bulkDelete">삭제</button>
  <button class="btn" id="clearSelect">취소</button>
@@ -915,6 +916,26 @@ document.querySelector("#bulkMembership").onclick=async()=>{
  const enabled=!chosen.every(x=>x.membership);
  for(const x of chosen){x.membership=enabled;await put(x)}
  selected.clear();await load();
+};
+function shareFile(x,index){
+ const name=String(index+1).padStart(3,"0")+"_"+safeDownloadName(x);
+ const ext=name.split(".").pop().toLowerCase();
+ const mime={jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",gif:"image/gif",webp:"image/webp",avif:"image/avif",heic:"image/heic",mp4:"video/mp4",webm:"video/webm",mov:"video/quicktime",m4v:"video/mp4"};
+ return new File([x.blob],name,{type:x.blob.type||mime[ext]||"application/octet-stream"});
+}
+document.querySelector("#bulkShare").onclick=async()=>{
+ const chosen=items.filter(x=>selected.has(x.id));if(!chosen.length)return;
+ const button=document.querySelector("#bulkShare");if(button.disabled)return;
+ if(!navigator.share||!navigator.canShare){alert("이 브라우저에서는 사진 공유를 지원하지 않습니다. 갤럭시의 Chrome이나 설치된 SCENE BOX에서 열어주세요. 또는 선택 다운로드로 저장한 뒤 카톡에 첨부할 수 있습니다.");return}
+ button.disabled=true;button.textContent="공유창 열기…";
+ try{
+  const files=chosen.map(shareFile);
+  if(!navigator.canShare({files})){alert("선택한 파일을 한 번에 공유할 수 없습니다. 사진 수를 줄이거나 사진과 영상을 나눠 선택해주세요. 지원하지 않는 형식은 다운로드 후 첨부해주세요.");return}
+  // Keep the native share call in the click gesture; do not await conversion first.
+  await navigator.share({files});
+ }catch(err){
+  if(err.name!=="AbortError")alert("공유하지 못했습니다. 사진 수를 줄여 다시 시도하거나 다운로드 후 카톡에 첨부해주세요.");
+ }finally{button.disabled=false;button.textContent="선택 공유 (카톡 등)"}
 };
 document.querySelector("#bulkDownload").onclick=async()=>{
  const chosen=items.filter(x=>selected.has(x.id));

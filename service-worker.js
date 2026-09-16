@@ -1,4 +1,4 @@
-const CACHE="scene-box-v20";
+const CACHE="scene-box-v21";
 const APP=["./","./index.html","./manifest.webmanifest","./icon-photo-192.png","./icon-photo-512.png","./icon-photo-maskable-512.png"];
 self.addEventListener("install",e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(APP)).then(()=>self.skipWaiting())));
 self.addEventListener("activate",e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
