@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SCENE BOX">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 :root{
   --bg:#f7f4ff;--panel:#ffffff;--ink:#241c35;--muted:#81778f;
@@ -33,7 +33,7 @@ header{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.86);backdro
 .btn.install{background:#241c35;color:#fff}.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:#45b36b;margin-right:5px}
 main{max-width:1200px;margin:auto;padding:20px 18px 90px}
 .hero{--hero-bg:none;--hero-dim:.42;--hero-blur:0px;position:relative;overflow:hidden;background:linear-gradient(135deg,#2c2141,#58417e);color:#fff;border-radius:20px;padding:16px 18px;box-shadow:var(--shadow);display:grid;grid-template-columns:1fr 1.35fr;gap:14px;align-items:stretch}
-.hero::before{content:"";position:absolute;inset:-12px;background-image:var(--hero-bg);background-size:cover;background-position:center;filter:blur(var(--hero-blur));transform:scale(1.04);z-index:0}
+.hero::before{content:"";position:absolute;inset:-12px;background-image:var(--hero-bg);background-size:cover;background-position:center;filter:blur(var(--hero-blur));background-repeat:no-repeat;transform:scale(var(--hero-scale,1));z-index:0}
 .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(44,33,65,var(--hero-dim)),rgba(88,65,126,var(--hero-dim)));z-index:1}
 .hero>*{position:relative;z-index:2}
 .hero h1{font-size:clamp(24px,3.5vw,38px);line-height:1.08;margin:0 0 7px}
@@ -52,9 +52,6 @@ main{max-width:1200px;margin:auto;padding:20px 18px 90px}
 .stat{background:white;border:1px solid var(--line);border-radius:14px;padding:9px 12px;color:var(--muted)}
 .stat b{color:var(--ink)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
-.virtual-scroll{position:relative;width:100%;min-height:1px}
-.virtual-grid{position:absolute;left:0;right:0;top:0;will-change:transform}
-.virtual-hint{font-size:11px;color:var(--muted);margin:-4px 0 10px;padding-left:3px}
 
 body[data-photo-size="tiny"] .grid{grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:5px}
 body[data-photo-size="small"] .grid{grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:8px}
@@ -161,7 +158,6 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
   <button class="btn" id="backupBtn">전체 백업</button>
   <button class="btn" id="restoreBtn">복원</button>
   <button class="btn" id="exportBtn">목록 CSV</button>
-  <button class="btn primary" id="addBtn">＋ 사진·영상 추가</button>
   <input id="fileInput" type="file" accept="image/*,video/*,.gif,.mp4,.webm,.mov,.m4v" multiple hidden>
   <input id="restoreInput" type="file" accept="application/zip,.zip,application/json,.json" hidden>
   <input id="backgroundInput" type="file" accept="image/*" hidden>
@@ -174,7 +170,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
    <h1>리센느 사진을<br>내 방식대로 정리해요.</h1>
    <p>멤버·날짜·활동·태그·최애 표시까지. 사진과 영상은 외부 서버로 전송되지 않습니다.</p><p class="small" style="color:#d9ccec;margin-top:10px"><span class="status-dot"></span><span id="appStatus">기기 내부 저장 · 오프라인 사용 가능</span></p>
   </div>
-  <div class="drop" id="dropZone">
+  <div class="drop" id="dropZone" role="button" tabindex="0" aria-label="사진·영상 추가">
    <div><b>사진·GIF·동영상을 여기에 끌어놓기</b><br><span class="small" style="color:#ddd">또는 눌러서 여러 파일 선택</span></div>
   </div>
  </section>
@@ -183,7 +179,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
   <input class="field search" id="search" placeholder="파일명, 활동, 태그, 메모 검색">
   <select class="field" id="sort">
    <option value="new">최근 추가순</option><option value="old">오래된순</option>
-   <option value="dateDesc">촬영일 최신순</option><option value="name">이름순</option>
+   <option value="dateDesc">촬영일 최신순</option><option value="name">이름순</option><option value="random">랜덤</option>
   </select>
   <select class="field" id="activityFilter"><option value="">모든 활동</option></select>
   <select class="field" id="favFilter"><option value="">전체 미디어</option><option value="fav">★ 최애만</option><option value="untagged">미분류만</option></select>
@@ -209,6 +205,8 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
  <div class="member-actions" id="bulkMemberButtons" aria-label="선택 사진 멤버 분류"></div>
  <button class="btn primary" id="bulkApplyMembers">멤버 적용</button>
  <button class="btn" id="bulkBubble">🫧 버블 지정/해제</button>
+ <button class="btn" id="bulkMembership">플챗맴버쉽 지정/해제</button>
+ <button class="btn primary" id="bulkDownload">선택 다운로드 (ZIP)</button>
  <button class="btn danger" id="bulkDelete">삭제</button>
  <button class="btn" id="clearSelect">취소</button>
 </div>
@@ -217,7 +215,9 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 <dialog id="backgroundDialog">
  <div class="modal">
   <h2>상단 배경 설정</h2>
-  <div id="heroPreview" class="hero-preview"></div>
+  <div id="heroPreview" class="hero-preview hero"></div>
+  <div class="setting-row"><label for="bgScale"><b>사진 크기</b></label><input type="range" id="bgScale" min="25" max="250" step="5" value="100"><output id="bgScaleOut" for="bgScale">100%</output></div>
+  <div class="hint">100%는 배경을 채우는 크기입니다. 줄이거나 확대해 조절하세요.</div>
   <div class="setting-row"><b>어둡기</b><input type="range" id="bgDim" min="0" max="80" value="42"><output id="bgDimOut">42%</output></div>
   <div class="setting-row"><b>흐림</b><input type="range" id="bgBlur" min="0" max="20" value="0"><output id="bgBlurOut">0px</output></div>
   <div class="hint">배경은 이 기기에 저장되며 전체 백업 ZIP에도 포함됩니다.</div>
@@ -236,6 +236,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
    <div><b>멤버 (여러 명 선택 가능)</b><div class="member-picker" id="importMembers"></div></div>
    <label>촬영일<input class="field" type="date" id="importDate"></label>
    <label class="bubble-check"><input type="checkbox" id="importBubble"> 🫧 버블 사진</label>
+   <label><input type="checkbox" id="importMembership"> 플챗맴버쉽</label>
    <label>활동 / 앨범<input class="field" id="importActivity" placeholder="예: Glow Up, 팬사인회"></label>
    <label>출처<input class="field" id="importSource" placeholder="예: X, 인스타"></label>
    <label class="full">공통 태그<input class="field" id="importTags" placeholder="쉼표로 구분"></label>
@@ -291,6 +292,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
    <div><b>멤버 (여러 명 선택 가능)</b><div class="member-picker" id="editMembers"></div></div>
    <label>촬영일<input class="field" type="date" id="editDate"></label>
    <label class="bubble-check"><input type="checkbox" id="editBubble"> 🫧 버블 사진</label>
+   <label><input type="checkbox" id="editMembership"> 플챗맴버쉽</label>
    <label>활동 / 앨범<input class="field" id="editActivity" placeholder="예: lip bomb, 팬사인회"></label>
    <label>출처<input class="field" id="editSource" placeholder="예: X, 인스타, 공식카페"></label>
    <label class="full">태그<input class="field" id="editTags" placeholder="쉼표로 구분: 정원이, 셀카, 금발"></label>
@@ -307,7 +309,7 @@ dialog::backdrop{background:rgba(20,14,30,.55);backdrop-filter:blur(3px)}
 <script>
 const MEMBERS=["원이","미나미","리브","메이","제나"];
 const ASSIGNABLE=[...MEMBERS,"기타"];
-const MEMBER_FILTERS=["미분류",...ASSIGNABLE,"단체","버블"];
+const MEMBER_FILTERS=["미분류",...ASSIGNABLE,"단체","버블","플챗맴버쉽"];
 function getMembers(x){
  if(Array.isArray(x.members))return x.members.filter(m=>ASSIGNABLE.includes(m));
  if(x.member && ASSIGNABLE.includes(x.member))return [x.member];
@@ -328,7 +330,8 @@ function memberMatches(x,filters){
  if(!selected.length)return true;
  const wantsBubble=selected.includes("버블");
  if(wantsBubble && !x.bubble)return false;
- const memberSelected=selected.filter(m=>m!=="버블");
+ if(selected.includes("플챗맴버쉽") && !x.membership)return false;
+ const memberSelected=selected.filter(m=>m!=="버블" && m!=="플챗맴버쉽");
  if(!memberSelected.length)return true;
  const wantsGroup=memberSelected.includes("단체");
  const wanted=memberSelected.filter(m=>m!=="단체");
@@ -388,11 +391,15 @@ function applyBackground(v=getBgSettings()){
  hero.style.setProperty("--hero-bg",v.dataUrl?`url(${JSON.stringify(v.dataUrl)})`:"none");
  hero.style.setProperty("--hero-dim",String((v.dim??42)/100));
  hero.style.setProperty("--hero-blur",`${v.blur??0}px`);
+ hero.style.setProperty("--hero-scale",String((v.scale??100)/100));
 }
 function updateBgPreview(){
  const current=getBgSettings(), data=pendingBackgroundData===null?current.dataUrl:pendingBackgroundData;
- heroPreview.style.backgroundImage=data?`linear-gradient(rgba(44,33,65,${bgDim.value/100}),rgba(88,65,126,${bgDim.value/100})),url(${JSON.stringify(data)})`:"linear-gradient(135deg,#2c2141,#58417e)";
- heroPreview.style.filter=`blur(${bgBlur.value}px)`; bgDimOut.value=`${bgDim.value}%`; bgBlurOut.value=`${bgBlur.value}px`;
+ heroPreview.style.setProperty("--hero-bg",data?'url('+JSON.stringify(data)+')':"none");
+ heroPreview.style.setProperty("--hero-dim",String(bgDim.value/100));
+ heroPreview.style.setProperty("--hero-blur",bgBlur.value+'px');
+ heroPreview.style.setProperty("--hero-scale",String(bgScale.value/100));
+ bgScaleOut.value=bgScale.value+'%'; bgDimOut.value=bgDim.value+'%'; bgBlurOut.value=bgBlur.value+'px';
 }
 async function compressBackground(file){
  const img=await createImageBitmap(file), maxW=1600,maxH=900,scale=Math.min(1,maxW/img.width,maxH/img.height);
@@ -402,7 +409,13 @@ async function compressBackground(file){
 }
 const DB_NAME="scene-box-db", STORE="photos";
 let db, items=[], memberFilters=new Set(), editingId=null, selected=new Set(), pendingFiles=[];
-let virtualState=null,virtualRAF=0,virtualUrls=[];
+let galleryUrls=[];
+const randomRanks=new Map();
+function resetRandomOrder(){randomRanks.clear()}
+function randomRank(id){
+ if(!randomRanks.has(id))randomRanks.set(id,Math.random());
+ return randomRanks.get(id);
+}
 let currentPage=1;
 let pageSize=Number(localStorage.getItem("sceneBoxPageSize")||50);
 
@@ -441,7 +454,7 @@ function openImport(files){
  pendingFiles=[...files].filter(f=>f.type.startsWith("image/")||f.type.startsWith("video/")||/\.(gif|mp4|webm|mov|m4v)$/i.test(f.name));
  if(!pendingFiles.length)return;
  importList.innerHTML=pendingFiles.map((f,i)=>{const url=objectURL(f);const preview=f.type.startsWith("video/")?`<video src="${url}" muted playsinline preload="metadata"></video>`:`<img src="${url}">`;return `<div class="import-row">${preview}<div><input class="field import-title" data-i="${i}" value="${esc(baseName(f.name))}" aria-label="미디어 제목"><div class="small">${esc(f.name)}</div></div></div>`}).join("");
- const currentFilters=[...memberFilters]; importMembers.innerHTML=pickerHTML("importMember",currentFilters.filter(m=>ASSIGNABLE.includes(m)),currentFilters.includes("단체")); importDate.value=""; importBubble.checked=false; importActivity.value=""; importSource.value=""; importTags.value=""; titlePattern.value="";
+ const currentFilters=[...memberFilters]; importMembers.innerHTML=pickerHTML("importMember",currentFilters.filter(m=>ASSIGNABLE.includes(m)),currentFilters.includes("단체")); importDate.value=""; importBubble.checked=false; importMembership.checked=currentFilters.includes("플챗맴버쉽"); importActivity.value=""; importSource.value=""; importTags.value=""; titlePattern.value="";
  importDialog.showModal();
 }
 function applyTitlePattern(){
@@ -461,7 +474,7 @@ async function savePendingFiles(){
    const f=pendingFiles[i], hash=await sha256(f);
    if(known.has(hash)){skipped++;continue}
    known.add(hash);
-   await put({id:uid(),name:titles[i]||baseName(f.name),originalName:f.name,blob:f,hash,members:chosen.members,group:chosen.group,member:chosen.group?"단체":(chosen.members[0]||"미분류"),date:importDate.value,bubble:importBubble.checked,activity:importActivity.value.trim(),source:importSource.value.trim(),tags,note:"",fav:false,addedAt:Date.now()+i});
+   await put({id:uid(),name:titles[i]||baseName(f.name),originalName:f.name,blob:f,hash,members:chosen.members,group:chosen.group,member:chosen.group?"단체":(chosen.members[0]||"미분류"),date:importDate.value,bubble:importBubble.checked,membership:importMembership.checked,activity:importActivity.value.trim(),source:importSource.value.trim(),tags,note:"",fav:false,addedAt:Date.now()+i});
    saved++;
   }
   pendingFiles=[]; importDialog.close(); fileInput.value=""; await load();
@@ -480,7 +493,7 @@ function passesNonMemberFilters(x){
  const bv=document.querySelector("#bubbleView").value;
  const dateFrom=document.querySelector("#dateFrom").value;
  const dateTo=document.querySelector("#dateTo").value;
- const hay=[x.name,memberText(x),...memberLabels(x),x.bubble?"버블":"",x.activity,x.source,x.note,...(x.tags||[])].join(" ").toLowerCase();
+ const hay=[x.name,memberText(x),...memberLabels(x),x.bubble?"버블":"",x.membership?"플챗맴버쉽":"",x.activity,x.source,x.note,...(x.tags||[])].join(" ").toLowerCase();
  return (!q||hay.includes(q)) && (!af||x.activity===af)
   && (!dateFrom||((x.date||"")>=dateFrom))
   && (!dateTo||((x.date||"")<=dateTo))
@@ -491,6 +504,10 @@ function passesNonMemberFilters(x){
 function filtered(){
  let arr=items.filter(x=>passesNonMemberFilters(x) && memberMatches(x,memberFilters));
  const s=document.querySelector("#sort").value;
+ if(s==="random"){
+  for(const x of arr)randomRank(x.id);
+  return arr.sort((a,b)=>randomRank(a.id)-randomRank(b.id)||String(a.id).localeCompare(String(b.id)));
+ }
  arr.sort((a,b)=>s==="old"?a.addedAt-b.addedAt:s==="dateDesc"?(b.date||"").localeCompare(a.date||""):s==="name"?a.name.localeCompare(b.name):b.addedAt-a.addedAt);
  return arr;
 }
@@ -499,61 +516,74 @@ function memberCountFor(label,baseItems){
  return baseItems.filter(x=>memberMatches(x,new Set([label]))).length;
 }
 
-function revokeVirtualUrls(){for(const u of virtualUrls)URL.revokeObjectURL(u);virtualUrls=[]}
+const thumbnailCache=new WeakMap();
+let mediaObserver=null,mediaGeneration=0,mediaQueue=[],mediaWorkers=0;
+function releaseGalleryMedia(){
+ mediaGeneration++;
+ mediaObserver?.disconnect();mediaQueue=[];
+ for(const u of galleryUrls)URL.revokeObjectURL(u);
+ galleryUrls=[];
+}
+async function thumbnailBlob(blob){
+ if(!thumbnailCache.has(blob))thumbnailCache.set(blob,(async()=>{
+  let bitmap;
+  try{
+   bitmap=await createImageBitmap(blob,{resizeWidth:480,resizeQuality:"medium"});
+   const canvas=document.createElement("canvas");
+   const scale=Math.min(1,480/bitmap.width,600/bitmap.height);
+   canvas.width=Math.max(1,Math.round(bitmap.width*scale));
+   canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+   canvas.getContext("2d").drawImage(bitmap,0,0,canvas.width,canvas.height);
+   return await new Promise(resolve=>canvas.toBlob(b=>resolve(b||blob),"image/webp",.8));
+  }catch{return blob}finally{bitmap?.close()}
+ })());
+ return thumbnailCache.get(blob);
+}
+function drainMediaQueue(){
+ while(mediaWorkers<2 && mediaQueue.length){
+  const job=mediaQueue.shift();
+  mediaWorkers++;
+  (async()=>{
+   if(job.generation!==mediaGeneration || !job.element.isConnected)return;
+   const blob=isVideo(job.item)?job.item.blob:await thumbnailBlob(job.item.blob);
+   if(job.generation!==mediaGeneration || !job.element.isConnected)return;
+   const url=objectURL(blob);galleryUrls.push(url);
+   job.element.src=url;
+  })().catch(()=>{}).finally(()=>{mediaWorkers--;drainMediaQueue()});
+ }
+}
+function observeGalleryMedia(){
+ const generation=mediaGeneration;
+ const byId=new Map(items.map(x=>[String(x.id),x]));
+ const enqueue=element=>{
+  const item=byId.get(element.dataset.mediaId);
+  if(item && generation===mediaGeneration)mediaQueue.push({element,item,generation});
+ };
+ const media=document.querySelectorAll("#gallery [data-media-id]");
+ if(!("IntersectionObserver" in window)){media.forEach(enqueue);drainMediaQueue();return}
+ mediaObserver=new IntersectionObserver(entries=>{
+  for(const entry of entries){
+   if(!entry.isIntersecting)continue;
+   mediaObserver.unobserve(entry.target);enqueue(entry.target);
+  }
+  drainMediaQueue();
+ },{rootMargin:"400px 0px"});
+ media.forEach(element=>mediaObserver.observe(element));
+}
 function cardHTML(x){
- const url=objectURL(x.blob);virtualUrls.push(url);
  return `
   <article class="card ${selected.has(x.id)?"selected-card":""}" data-id="${x.id}">
    <input class="check" type="checkbox" ${selected.has(x.id)?"checked":""} aria-label="선택">
    <button class="fav" aria-label="최애">${x.fav?"★":"☆"}</button>
    <button class="view-photo" aria-label="크게 보기">⛶</button>
-   ${isVideo(x)?`<video class="thumb" src="${url}" muted playsinline preload="metadata"></video>`:`<img class="thumb" loading="lazy" decoding="async" src="${url}" alt="${esc(x.name)}">`}
+   ${isVideo(x)?`<video class="thumb" data-media-id="${esc(String(x.id))}" muted playsinline preload="metadata"></video>`:`<img class="thumb" data-media-id="${esc(String(x.id))}" loading="lazy" decoding="async" alt="${esc(x.name)}">`}
    <div class="cardbody">
     <div class="name">${esc(x.name)}</div>
     <div class="meta">${esc([memberText(x),x.date,x.activity].filter(Boolean).join(" · ")||"미분류")}</div>
-    <div class="tags">${isVideo(x)?`<span class="video-badge">🎥 영상</span>`:""}${isGif(x)?`<span class="bubble-badge">🎞️ GIF</span>`:""}${x.bubble?`<span class="bubble-badge">🫧 버블</span>`:""}${(x.tags||[]).slice(0,4).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
+    <div class="tags">${isVideo(x)?`<span class="video-badge">🎥 영상</span>`:""}${isGif(x)?`<span class="bubble-badge">🎞️ GIF</span>`:""}${x.bubble?`<span class="bubble-badge">🫧 버블</span>`:""}${x.membership?`<span class="bubble-badge">플챗맴버쉽</span>`:""}${(x.tags||[]).slice(0,4).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
    </div>
   </article>`;
 }
-function gridMetrics(){
- const size=document.body.dataset.photoSize||"small";
- const gap={tiny:5,small:8,normal:11,large:16,list:8}[size]||8;
- const min={tiny:82,small:125,normal:175,large:245,list:9999}[size]||125;
- const w=Math.max(1,document.querySelector("#gallery").clientWidth||window.innerWidth-20);
- const cols=size==="list"?1:Math.max(1,Math.floor((w+gap)/(min+gap)));
- const colW=(w-gap*(cols-1))/cols;
- const body={tiny:27,small:58,normal:82,large:88,list:0}[size]||58;
- const rowH=size==="list"?120:(colW*1.25+body+gap);
- return {cols,rowH,gap};
-}
-function renderVirtualWindow(force=false){
- if(!virtualState)return;
- cancelAnimationFrame(virtualRAF);
- virtualRAF=requestAnimationFrame(()=>{
-  const state=virtualState, shell=document.querySelector("#virtualShell"), grid=document.querySelector("#virtualGrid");
-  if(!shell||!grid)return;
-  const m=gridMetrics(), totalRows=Math.ceil(state.arr.length/m.cols), totalH=Math.max(1,totalRows*m.rowH);
-  shell.style.height=totalH+"px";
-  const top=shell.getBoundingClientRect().top+window.scrollY;
-  const y=Math.max(0,window.scrollY-top);
-  const buffer=4;
-  const startRow=Math.max(0,Math.floor(y/m.rowH)-buffer);
-  const endRow=Math.min(totalRows,Math.ceil((y+window.innerHeight)/m.rowH)+buffer);
-  if(!force&&state.startRow===startRow&&state.endRow===endRow&&state.cols===m.cols)return;
-  state.startRow=startRow;state.endRow=endRow;state.cols=m.cols;
-  const start=startRow*m.cols,end=Math.min(state.arr.length,endRow*m.cols);
-  revokeVirtualUrls();
-  grid.style.transform=`translateY(${startRow*m.rowH}px)`;
-  grid.innerHTML=state.arr.slice(start,end).map(cardHTML).join("");
- });
-}
-function startVirtualGallery(arr,headerHTML=""){
- const g=document.querySelector("#gallery");
- g.innerHTML=`${headerHTML}<div class="virtual-hint">가상 스크롤 사용 중 · 화면 근처 사진만 불러옵니다.</div><div id="virtualShell" class="virtual-scroll"><div id="virtualGrid" class="grid virtual-grid"></div></div>`;
- virtualState={arr,startRow:-1,endRow:-1,cols:0};
- renderVirtualWindow(true);
-}
-
 function pageButtonHTML(page,label=String(page),active=false,disabled=false){
  return `<button class="page-btn ${active?"active":""}" data-page="${page}" ${disabled?"disabled":""}>${label}</button>`;
 }
@@ -594,7 +624,7 @@ function render(){
  const pageArr=arr.slice(pageStart,pageStart+pageSize);
  document.querySelector("#stats").innerHTML=`<div class="stat">전체 <b>${items.length}</b></div><div class="stat">현재 보기 <b>${arr.length}</b></div><div class="stat">현재 페이지 <b>${pageArr.length}</b></div><div class="stat">GIF <b>${gifs}</b></div><div class="stat">영상 <b>${videos}</b></div><div class="stat">최애 <b>${favs}</b></div><div class="stat">미분류 <b>${un}</b></div>`;
  const g=document.querySelector("#gallery");
- virtualState=null;revokeVirtualUrls();
+ releaseGalleryMedia();
  if(!arr.length){g.innerHTML=`<div class="empty">${items.length?"조건에 맞는 사진이 없습니다.":"사진을 추가하면 여기에 예쁘게 정리됩니다."}</div>`;renderPagination(0);updateBulk();return}
  if(document.querySelector("#viewMode").value==="member"&&!memberFilters.size){
   g.innerHTML=MEMBER_FILTERS.map(m=>{
@@ -606,6 +636,7 @@ function render(){
   const header=document.querySelector("#viewMode").value==="member"&&memberFilters.size?`<section class="member-section"><div class="member-head"><h2>${esc([...memberFilters].join(" · "))}</h2><span class="member-count">${arr.length}장</span></div></section>`:"";
   g.innerHTML=`${header}<div class="grid">${pageArr.map(cardHTML).join("")}</div>`;
  }
+ observeGalleryMedia();
  renderPagination(arr.length);
  updateBulk();
 }
@@ -627,7 +658,7 @@ function showLightbox(id){
   lightboxImage.classList.remove("media-hidden");lightboxImage.src=mediaUrl;
  }
  lightboxTitle.textContent=x.name||x.originalName||(isVideo(x)?"동영상":"사진");
- lightboxMeta.textContent=[memberText(x),x.date,x.activity,x.originalName].filter(Boolean).join(" · ");
+ lightboxMeta.textContent=[memberText(x),x.membership?"플챗맴버쉽":"",x.date,x.activity,x.originalName].filter(Boolean).join(" · ");
  const arr=lightboxItems(), idx=arr.findIndex(v=>v.id===id);
  prevPhoto.disabled=arr.length<2;nextPhoto.disabled=arr.length<2;
  if(!lightboxDialog.open)lightboxDialog.showModal();
@@ -659,13 +690,15 @@ function openEdit(id){
  document.querySelector("#editDate").value=x.date||"";
  document.querySelector("#editActivity").value=x.activity||"";
  document.querySelector("#editBubble").checked=!!x.bubble;
+ editMembership.checked=!!x.membership;
  document.querySelector("#editSource").value=x.source||"";
  document.querySelector("#editTags").value=(x.tags||[]).join(", ");
  document.querySelector("#editNote").value=x.note||"";
  document.querySelector("#editDialog").showModal();
 }
 
-document.querySelector("#addBtn").onclick=()=>document.querySelector("#fileInput").click();
+
+document.querySelector("#dropZone").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();fileInput.click()}};
 document.querySelector("#dropZone").onclick=()=>document.querySelector("#fileInput").click();
 document.querySelector("#fileInput").onchange=e=>openImport(e.target.files);
 ["dragenter","dragover"].forEach(ev=>dropZone.addEventListener(ev,e=>{e.preventDefault();dropZone.classList.add("drag")}));
@@ -681,9 +714,17 @@ document.addEventListener("click",e=>{
  e.preventDefault();e.stopPropagation();togglePickerButton(btn);
 });
 
+function syncCardSelection(){
+ document.querySelectorAll("#gallery .card").forEach(card=>{
+  const checked=selected.has(card.dataset.id);
+  card.classList.toggle("selected-card",checked);
+  card.querySelector(".check").checked=checked;
+ });
+ updateBulk();
+}
 function toggleCardSelection(id){
  selected.has(id)?selected.delete(id):selected.add(id);
- render();
+ syncCardSelection();
 }
 let suppressCardClickUntil=0;
 let longPressTimer=null,longPressCard=null,longPressStartX=0,longPressStartY=0;
@@ -713,11 +754,11 @@ document.body.addEventListener("click",async e=>{
  if(Date.now()<suppressCardClickUntil){e.preventDefault();return}
  if(selected.size>0){e.preventDefault();toggleCardSelection(id);return}
  if(e.target.closest(".fav")){x.fav=!x.fav;await put(x);await load();return}
- if(e.target.matches(".check")){e.target.checked?selected.add(id):selected.delete(id);render();return}
+ if(e.target.matches(".check")){e.target.checked?selected.add(id):selected.delete(id);syncCardSelection();return}
  if(e.target.closest(".view-photo")||e.target.matches(".thumb")){showLightbox(id);return}
  openEdit(id);
 });
-["search","sort","activityFilter","favFilter","mediaFilter","bubbleView","viewMode","dateFrom","dateTo"].forEach(id=>document.querySelector("#"+id).addEventListener(id==="search"?"input":"change",()=>{currentPage=1;render()}));
+["search","sort","activityFilter","favFilter","mediaFilter","bubbleView","viewMode","dateFrom","dateTo"].forEach(id=>document.querySelector("#"+id).addEventListener(id==="search"?"input":"change",()=>{if(id==="sort")resetRandomOrder();currentPage=1;render()}));
 document.querySelector("#photoSize").addEventListener("change",e=>{document.body.dataset.photoSize=e.target.value;localStorage.setItem("sceneBoxPhotoSize",e.target.value);currentPage=1;render();});
 document.querySelector("#pagination").addEventListener("click",e=>{
  const b=e.target.closest(".page-btn[data-page]");if(!b||b.disabled)return;
@@ -738,7 +779,7 @@ document.querySelector("#saveEdit").onclick=async()=>{
  const chosen=readPicker("editMember");
  Object.assign(x,{
   name:editTitle.value.trim()||x.name,
-  members:chosen.members,group:chosen.group,member:chosen.group?"단체":(chosen.members[0]||"미분류"),date:editDate.value,bubble:editBubble.checked,activity:editActivity.value.trim(),source:editSource.value.trim(),
+  members:chosen.members,group:chosen.group,member:chosen.group?"단체":(chosen.members[0]||"미분류"),date:editDate.value,bubble:editBubble.checked,membership:editMembership.checked,activity:editActivity.value.trim(),source:editSource.value.trim(),
   tags:editTags.value.split(",").map(v=>v.trim()).filter(Boolean),note:editNote.value.trim()
  });
  await put(x);editDialog.close();await load();
@@ -747,13 +788,34 @@ document.querySelector("#deleteOne").onclick=async()=>{
  if(!confirm("이 미디어를 목록에서 삭제할까요? 원본 파일은 삭제되지 않습니다."))return;
  await del(editingId);editDialog.close();await load();
 };
-document.querySelector("#clearSelect").onclick=()=>{selected.clear();bulkChosenMembers.clear();updateBulkMemberButtons();render()};
+document.querySelector("#clearSelect").onclick=()=>{selected.clear();bulkChosenMembers.clear();updateBulkMemberButtons();syncCardSelection()};
 document.querySelector("#bulkBubble").onclick=async()=>{
  const chosen=[...selected].map(id=>items.find(v=>v.id===id)).filter(Boolean);
  const makeBubble=!chosen.every(x=>x.bubble);
  for(const x of chosen){x.bubble=makeBubble;await put(x)}
  selected.clear();await load();
  alert(makeBubble?"선택한 사진을 버블 사진으로 지정했습니다.":"선택한 사진의 버블 지정을 해제했습니다.");
+};
+document.querySelector("#bulkMembership").onclick=async()=>{
+ const chosen=items.filter(x=>selected.has(x.id));
+ const enabled=!chosen.every(x=>x.membership);
+ for(const x of chosen){x.membership=enabled;await put(x)}
+ selected.clear();await load();
+};
+document.querySelector("#bulkDownload").onclick=async()=>{
+ const chosen=items.filter(x=>selected.has(x.id));
+ if(!chosen.length)return;
+ const button=document.querySelector("#bulkDownload");
+ button.disabled=true;
+ try{
+  const entries=[];
+  for(const [i,x] of chosen.entries()){
+   button.textContent='ZIP 만드는 중 '+(i+1)+'/'+chosen.length;
+   entries.push({name:String(i+1).padStart(4,"0")+'_'+safeDownloadName(x),data:await x.blob.arrayBuffer()});
+  }
+  downloadBlob(await makeZip(entries),'scene-box-selected-'+new Date().toISOString().slice(0,10)+'.zip');
+ }catch(err){alert("선택 다운로드에 실패했습니다: "+err.message)}
+ finally{button.disabled=false;button.textContent="선택 다운로드 (ZIP)"}
 };
 document.querySelector("#bulkDelete").onclick=async()=>{
  if(!confirm(`${selected.size}장을 목록에서 삭제할까요?`))return;
@@ -860,17 +922,17 @@ function readStoredZip(buffer){
  }
  return files;
 }
-backgroundBtn.onclick=()=>{const v=getBgSettings();pendingBackgroundData=null;bgDim.value=v.dim??42;bgBlur.value=v.blur??0;updateBgPreview();backgroundDialog.showModal()};
+backgroundBtn.onclick=()=>{const v=getBgSettings();pendingBackgroundData=null;bgDim.value=v.dim??42;bgBlur.value=v.blur??0;bgScale.value=v.scale??100;updateBgPreview();backgroundDialog.showModal()};
 chooseBackground.onclick=()=>backgroundInput.click();
 backgroundInput.onchange=async e=>{const f=e.target.files?.[0];if(!f)return;pendingBackgroundData=await compressBackground(f);updateBgPreview()};
-bgDim.oninput=updateBgPreview;bgBlur.oninput=updateBgPreview;
+bgScale.oninput=updateBgPreview;bgDim.oninput=updateBgPreview;bgBlur.oninput=updateBgPreview;
 removeBackground.onclick=()=>{pendingBackgroundData="";updateBgPreview()};
 closeBackground.onclick=()=>backgroundDialog.close();
 saveBackground.onclick=async()=>{
  const old=getBgSettings();
  saveBackground.disabled=true;
  try{
-  await setBgSettings({dataUrl:pendingBackgroundData===null?(old.dataUrl||""):pendingBackgroundData,dim:Number(bgDim.value),blur:Number(bgBlur.value)});
+  await setBgSettings({dataUrl:pendingBackgroundData===null?(old.dataUrl||""):pendingBackgroundData,dim:Number(bgDim.value),blur:Number(bgBlur.value),scale:Number(bgScale.value)});
   backgroundDialog.close();
   alert("배경이 기기에 고정 저장되었습니다.");
  }catch(err){alert("배경 저장에 실패했습니다: "+err.message)}finally{saveBackground.disabled=false}
@@ -945,8 +1007,8 @@ document.querySelector("#homeBtn").onclick=()=>{
 document.querySelector("#exportBtn").onclick=()=>{
  const ok=confirm("목록 CSV 안내\n\n사진 원본은 포함하지 않고 제목·원본 파일명·멤버·날짜·활동·태그·메모 같은 목록만 표 파일로 저장합니다. 엑셀이나 구글 스프레드시트에서 열 수 있습니다.\n\nCSV 목록을 저장할까요?");
  if(!ok)return;
- const rows=[["제목","원본 파일명","형식","멤버","촬영일","활동","출처","태그","메모","최애"]];
- items.forEach(x=>rows.push([x.name,x.originalName||x.name,isVideo(x)?"동영상":isGif(x)?"GIF":"사진",memberText(x),x.date,x.activity,x.source,(x.tags||[]).join("|"),x.note,x.fav?"Y":"N"]));
+ const rows=[["제목","원본 파일명","형식","멤버","촬영일","활동","출처","태그","메모","최애","플챗맴버쉽"]];
+ items.forEach(x=>rows.push([x.name,x.originalName||x.name,isVideo(x)?"동영상":isGif(x)?"GIF":"사진",memberText(x),x.date,x.activity,x.source,(x.tags||[]).join("|"),x.note,x.fav?"Y":"N",x.membership?"Y":"N"]));
  const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v||"").replaceAll('"','""')}"`).join(",")).join("\n");
  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="scene-box-media-list.csv";a.click();
 };
