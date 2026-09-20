@@ -37,6 +37,7 @@ async function main(){
  assert.equal(await page.locator('#photoSize').inputValue(),'3');
  for(const width of [320,1200]){await page.setViewportSize({width,height:800});for(const n of ['2','3','4','5','6']){await page.selectOption('#photoSize',n);assert.equal(await page.locator('#gallery .grid').first().evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),Number(n));}}
  await page.reload();await page.waitForFunction(()=>typeof items!=='undefined'&&items.length===3);assert.equal(await page.locator('#photoSize').inputValue(),'6');await page.selectOption('#photoSize','3');await page.setViewportSize({width:390,height:844});
+ const controls=await page.evaluate(()=>{const d=document.querySelector('.date-range').getBoundingClientRect(),s=document.querySelector('#sort').getBoundingClientRect(),b=document.querySelector('#shuffleBtn').getBoundingClientRect();return {sameRow:Math.abs(d.top-s.top)<2&&Math.abs(s.top-b.top)<2,ordered:d.right<=s.left&&s.right<=b.left}});assert.deepEqual(controls,{sameRow:true,ordered:true});await page.click('#shuffleBtn');assert.equal(await page.locator('#sort').inputValue(),'random');await page.selectOption('#sort','new');
  const before=await snapshot();
  assert.equal(await page.locator('#selectionModeBtn,#selectionActions').count(),0);
  await page.locator('.card[data-id="local-0"] .check').check();assert.equal(await page.locator('#selectedCount').innerText(),'1장 선택');
