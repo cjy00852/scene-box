@@ -51,6 +51,12 @@ async function main(){
  await page.click('#openBulkEdit');await page.fill('#bulkEditDate','2026-09-21');await page.fill('#bulkEditActivity','최종 행사');await page.click('#saveBulkEdit');await page.waitForFunction(()=>items.every(x=>x.date==='2026-09-21'&&x.activity==='최종 행사'));
  after=await snapshot();const preserve=x=>{const copy={...x};for(const key of ['date','activity','syncRevision'])delete copy[key];return copy};assert.deepEqual(after.map(preserve),before.map(preserve));
  assert.ok(messages.includes('선택한 3개의 날짜/행사를 변경하시겠습니까?'));assert.ok(messages.includes('3개의 날짜/행사를 변경했습니다.'));
+ await page.click('#bulkRename');assert.equal(await page.locator('#saveRename').isDisabled(),true);
+ await page.fill('#renamePrefix','팬사인회');await page.fill('#renameStart','7');assert.match(await page.locator('#renamePreview').innerText(),/팬사인회_007/);
+ acceptConfirm=false;await page.click('#saveRename');assert.deepEqual(await snapshot(),after);acceptConfirm=true;
+ await page.click('#saveRename');await page.waitForFunction(()=>items.every(x=>x.name.startsWith('팬사인회_')));
+ const renamed=await snapshot();assert.deepEqual(renamed.map(x=>x.name).sort(),['팬사인회_007','팬사인회_008','팬사인회_009']);
+ const exceptName=x=>{const c={...x};delete c.name;delete c.syncRevision;return c};assert.deepEqual(renamed.map(exceptName),after.map(exceptName));after=renamed;
  await page.click('#cancelSelection');assert.equal(await page.locator('#selectionActions').isVisible(),false);
  await page.reload();await page.waitForFunction(()=>typeof items!=='undefined'&&items.length===3);assert.deepEqual(await snapshot(),after);
  await page.locator('.card[data-id="local-0"] .photo-open').click();assert.equal(await page.locator('#lightboxDialog').isVisible(),true);await page.keyboard.press('Escape');
