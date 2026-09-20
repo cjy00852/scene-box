@@ -156,12 +156,15 @@ body[data-photo-size="small"] .card-footer .check,body[data-photo-size="tiny"] .
 body[data-photo-size="small"] .card-footer .fav,body[data-photo-size="tiny"] .card-footer .fav{grid-row:2;grid-column:2}
 body[data-photo-size="list"] .photo-open{width:92px;height:112px}
 @media(max-width:760px){body[data-photo-size="list"] .photo-open{width:78px;height:98px}}
+.top{position:relative;padding-top:38px}.storage-usage{position:absolute;right:18px;top:8px;font-size:12px;font-weight:750;color:var(--muted)}
+.category-row{display:flex;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.category-row>span{flex:1;overflow-wrap:anywhere}select[multiple]{min-height:76px}.bulk select[multiple]{max-width:150px;color:var(--ink);border-radius:8px}
 </style>
 </head>
 <body>
 <div id="pageBackground" class="page-background hero" aria-hidden="true" hidden></div>
 <header>
  <div class="top">
+  <output id="storageUsage" class="storage-usage" aria-live="polite">저장 용량 계산 중…</output>
   <div><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE · v12</div></div>
   <nav class="header-actions" aria-label="앱 메뉴">
    <button class="btn" id="homeBtn" title="전체 화면으로 돌아가기">⌂ 홈</button>
@@ -169,7 +172,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
     <button class="btn" id="backgroundBtn">상단 배경</button><button class="btn" id="pageBackgroundBtn">전체 배경</button>
    </div></details>
    <details class="header-menu"><summary class="btn">관리 <span aria-hidden="true">⌄</span></summary><div class="header-menu-panel">
-    <button class="btn" id="duplicateBtn">중복 정리</button><button class="btn" id="backupBtn">전체 백업</button><button class="btn" id="restoreBtn">백업 복원</button><button class="btn" id="exportBtn">목록 CSV 내보내기</button>
+    <button class="btn" id="categoryManagerBtn">자료 분류 관리</button><button class="btn" id="driveSyncBtn">Google Drive 동기화</button><button class="btn" id="duplicateBtn">중복 정리</button><button class="btn" id="backupBtn">전체 백업</button><button class="btn" id="restoreBtn">백업 복원</button><button class="btn" id="exportBtn">목록 CSV 내보내기</button>
    </div></details>
    <button class="btn install" id="installBtn" hidden>앱 설치</button>
   </nav>
@@ -200,7 +203,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
   <select class="field" id="activityFilter"><option value="">모든 활동</option></select>
   <select class="field" id="favFilter"><option value="">전체 미디어</option><option value="fav">★ 최애만</option><option value="untagged">미분류만</option></select>
   <select class="field" id="mediaFilter"><option value="">사진+GIF+영상 전체</option><option value="video">🎥 동영상만</option><option value="gif">🎞️ GIF만</option><option value="still">🖼️ 일반 사진만</option><option value="image">🖼️ 사진+GIF만</option></select>
-  <select class="field" id="bubbleView"><option value="all">🫧 버블 포함</option><option value="exclude">버블 제외</option><option value="only">버블만 보기</option></select>
+  <select class="field" id="categoryView" aria-label="자료 분류"></select>
   <select class="field" id="photoSize"><option value="tiny">매우 작게</option><option value="small">작게</option><option value="normal">보통</option><option value="large">크게</option><option value="list">리스트</option></select>
   <select class="field" id="viewMode"><option value="grid">전체 그리드</option><option value="member">멤버별 나누기</option></select>
   <div class="date-range" aria-label="촬영일 기간 검색">
@@ -220,8 +223,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
  <b id="selectedCount">0장 선택</b>
  <div class="member-actions" id="bulkMemberButtons" aria-label="선택 사진 멤버 분류"></div>
  <button class="btn primary" id="bulkApplyMembers">멤버 적용</button>
- <button class="btn" id="bulkBubble">🫧 버블 지정/해제</button>
- <button class="btn" id="bulkMembership">플챗맴버쉽 지정/해제</button>
+ <select id="bulkCategories" multiple aria-label="일괄 자료 분류"></select><button class="btn" id="bulkApplyCategories">분류 적용</button>
  <button class="btn primary" id="bulkShare">선택 공유 (카톡 등)</button>
  <button class="btn primary" id="bulkDownload">선택 다운로드 (ZIP)</button>
  <button class="btn danger" id="bulkDelete">삭제</button>
@@ -229,6 +231,8 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
 </div>
 
 
+<dialog id="driveDialog"><div class="modal"><h2>Google Drive 자동 동기화</h2><p id="driveStatus" role="status"></p><p id="driveCounts" aria-live="polite"></p><p id="driveLastSync" class="hint"></p><p class="hint">앱을 열어둔 동안 원본을 업로드합니다. 로컬에서 삭제해도 Drive 파일은 삭제하지 않습니다. 연결이 만료되면 재연결이 필요합니다.</p><ul id="driveFailures"></ul><div class="actions"><button class="btn primary" id="driveConnect">Google Drive 연결 / 재연결</button><button class="btn" id="driveDisconnect">연결 해제</button><button class="btn" id="driveRetry">실패 항목 재시도</button><button class="btn" id="closeDrive">닫기</button></div></div></dialog>
+<dialog id="categoryDialog"><div class="modal"><h2>자료 분류 관리</h2><div class="actions"><input class="field" id="categoryName" maxlength="60" placeholder="새 분류 이름"><button class="btn primary" id="addCategory">추가</button></div><div id="categoryList"></div><div class="actions"><button class="btn" id="closeCategories">닫기</button></div></div></dialog>
 <dialog id="backgroundDialog">
  <div class="modal">
   <h2 id="backgroundTitle">상단 배경 설정</h2>
@@ -253,8 +257,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
   <div class="formgrid">
    <div><b>멤버 (여러 명 선택 가능)</b><div class="member-picker" id="importMembers"></div></div>
    <label>촬영일<input class="field" type="date" id="importDate"></label>
-   <label class="bubble-check"><input type="checkbox" id="importBubble"> 🫧 버블 사진</label>
-   <label><input type="checkbox" id="importMembership"> 플챗맴버쉽</label>
+<label>자료 분류<select class="field" id="importCategories" multiple aria-label="자료 분류"></select><span class="hint">복수 분류는 목록에서 먼저 표시된 분류 폴더 한 곳에 동기화됩니다.</span></label>
    <label>활동 / 앨범<input class="field" id="importActivity" placeholder="예: Glow Up, 팬사인회"></label>
    <label>출처<input class="field" id="importSource" placeholder="예: X, 인스타"></label>
    <label class="full">공통 태그<input class="field" id="importTags" placeholder="쉼표로 구분"></label>
@@ -309,8 +312,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
    <label class="full">제목<input class="field" id="editTitle" placeholder="사진 제목"></label>
    <div><b>멤버 (여러 명 선택 가능)</b><div class="member-picker" id="editMembers"></div></div>
    <label>촬영일<input class="field" type="date" id="editDate"></label>
-   <label class="bubble-check"><input type="checkbox" id="editBubble"> 🫧 버블 사진</label>
-   <label><input type="checkbox" id="editMembership"> 플챗맴버쉽</label>
+<label>자료 분류<select class="field" id="editCategories" multiple aria-label="자료 분류"></select><span class="hint">복수 분류는 목록에서 먼저 표시된 분류 폴더 한 곳에 동기화됩니다.</span></label>
    <label>활동 / 앨범<input class="field" id="editActivity" placeholder="예: lip bomb, 팬사인회"></label>
    <label>출처<input class="field" id="editSource" placeholder="예: X, 인스타, 공식카페"></label>
    <label class="full">태그<input class="field" id="editTags" placeholder="쉼표로 구분: 정원이, 셀카, 금발"></label>
@@ -324,10 +326,15 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
  </div>
 </dialog>
 
+<script src="google-config.js"></script>
+<script src="scene-data.js"></script>
+<script src="scene-categories.js"></script>
+<script src="drive-rules.js"></script>
+<script src="drive-sync.js"></script>
 <script>
 const MEMBERS=["원이","미나미","리브","메이","제나"];
 const ASSIGNABLE=[...MEMBERS,"기타"];
-const MEMBER_FILTERS=["미분류",...ASSIGNABLE,"단체","버블","플챗맴버쉽"];
+let MEMBER_FILTERS=["미분류",...ASSIGNABLE,"단체"];
 function getMembers(x){
  if(Array.isArray(x.members))return x.members.filter(m=>ASSIGNABLE.includes(m));
  if(x.member && ASSIGNABLE.includes(x.member))return [x.member];
@@ -346,10 +353,9 @@ function exactSameMembers(actual, wanted){
 function memberMatches(x,filters){
  const selected=filters instanceof Set?[...filters]:Array.isArray(filters)?filters:(filters?[filters]:[]);
  if(!selected.length)return true;
- const wantsBubble=selected.includes("버블");
- if(wantsBubble && !x.bubble)return false;
- if(selected.includes("플챗맴버쉽") && !x.membership)return false;
- const memberSelected=selected.filter(m=>m!=="버블" && m!=="플챗맴버쉽");
+ const categoryFilters=selected.filter(m=>m.startsWith("category:"));
+ if(!categoryFilters.every(m=>SceneCategories.ids(x).includes(m.slice(9))))return false;
+ const memberSelected=selected.filter(m=>!m.startsWith("category:"));
  if(!memberSelected.length)return true;
  const wantsGroup=memberSelected.includes("단체");
  const wanted=memberSelected.filter(m=>m!=="단체");
@@ -525,9 +531,10 @@ let pageSize=Number(localStorage.getItem("sceneBoxPageSize")||50);
 
 function openDB(){
  return new Promise((resolve,reject)=>{
-  const req=indexedDB.open(DB_NAME,2);
+  const req=indexedDB.open(DB_NAME,3);
   req.onupgradeneeded=()=>{
    const d=req.result;
+   if(!d.objectStoreNames.contains("driveJobs"))d.createObjectStore("driveJobs",{keyPath:"id"});
    if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:"id"});
    if(!d.objectStoreNames.contains(SETTINGS_STORE))d.createObjectStore(SETTINGS_STORE,{keyPath:"key"});
   };
@@ -537,8 +544,8 @@ function openDB(){
 function tx(mode="readonly"){return db.transaction(STORE,mode).objectStore(STORE)}
 function reqP(req){return new Promise((res,rej)=>{req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)})}
 async function load(){items=await reqP(tx().getAll());render()}
-async function put(item){await reqP(tx("readwrite").put(item))}
-async function del(id){await reqP(tx("readwrite").delete(id))}
+async function put(item){await SceneData.put(item)}
+async function del(id){await SceneData.del(id)}
 const uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random();
 async function sha256(blob){
  const buf=await blob.arrayBuffer();
@@ -558,7 +565,7 @@ function openImport(files){
  pendingFiles=[...files].filter(f=>f.type.startsWith("image/")||f.type.startsWith("video/")||/\.(gif|mp4|webm|mov|m4v)$/i.test(f.name));
  if(!pendingFiles.length)return;
  importList.innerHTML=pendingFiles.map((f,i)=>{const url=objectURL(f);const preview=f.type.startsWith("video/")?`<video src="${url}" muted playsinline preload="metadata"></video>`:`<img src="${url}">`;return `<div class="import-row">${preview}<div><input class="field import-title" data-i="${i}" value="${esc(baseName(f.name))}" aria-label="미디어 제목"><div class="small">${esc(f.name)}</div></div></div>`}).join("");
- const currentFilters=[...memberFilters]; importMembers.innerHTML=pickerHTML("importMember",currentFilters.filter(m=>ASSIGNABLE.includes(m)),currentFilters.includes("단체")); importDate.value=""; importBubble.checked=false; importMembership.checked=currentFilters.includes("플챗맴버쉽"); importActivity.value=""; importSource.value=""; importTags.value=""; titlePattern.value="";
+ const currentFilters=[...memberFilters]; importMembers.innerHTML=pickerHTML("importMember",currentFilters.filter(m=>ASSIGNABLE.includes(m)),currentFilters.includes("단체")); importDate.value=""; SceneCategories.fill("importCategories",currentFilters.filter(m=>m.startsWith("category:")).map(m=>m.slice(9))); importActivity.value=""; importSource.value=""; importTags.value=""; titlePattern.value="";
  importDialog.showModal();
 }
 function applyTitlePattern(){
@@ -578,7 +585,7 @@ async function savePendingFiles(){
    const f=pendingFiles[i], hash=await sha256(f);
    if(known.has(hash)){skipped++;continue}
    known.add(hash);
-   await put({id:uid(),name:titles[i]||baseName(f.name),originalName:f.name,blob:f,hash,members:chosen.members,group:chosen.group,member:chosen.group?"단체":(chosen.members[0]||"미분류"),date:importDate.value,bubble:importBubble.checked,membership:importMembership.checked,activity:importActivity.value.trim(),source:importSource.value.trim(),tags,note:"",fav:false,addedAt:Date.now()+i});
+   await put({id:uid(),name:titles[i]||baseName(f.name),originalName:f.name,blob:f,hash,members:chosen.members,group:chosen.group,member:chosen.group?"단체":(chosen.members[0]||"미분류"),date:importDate.value,categoryIds:SceneCategories.read("importCategories"),bubble:false,membership:false,activity:importActivity.value.trim(),source:importSource.value.trim(),tags,note:"",fav:false,addedAt:Date.now()+i});
    saved++;
   }
   pendingFiles=[]; importDialog.close(); fileInput.value=""; await load();
@@ -594,15 +601,15 @@ function passesNonMemberFilters(x){
  const af=document.querySelector("#activityFilter").value;
  const ff=document.querySelector("#favFilter").value;
  const mf=document.querySelector("#mediaFilter").value;
- const bv=document.querySelector("#bubbleView").value;
+ const bv=document.querySelector("#categoryView").value;
  const dateFrom=document.querySelector("#dateFrom").value;
  const dateTo=document.querySelector("#dateTo").value;
- const hay=[x.name,memberText(x),...memberLabels(x),x.bubble?"버블":"",x.membership?"플챗맴버쉽":"",x.activity,x.source,x.note,...(x.tags||[])].join(" ").toLowerCase();
+ const hay=[x.name,memberText(x),...memberLabels(x),...SceneCategories.names(x),x.activity,x.source,x.note,...(x.tags||[])].join(" ").toLowerCase();
  return (!q||hay.includes(q)) && (!af||x.activity===af)
   && (!dateFrom||((x.date||"")>=dateFrom))
   && (!dateTo||((x.date||"")<=dateTo))
   && (!mf||(mf==="gif"?isGif(x):mf==="video"?isVideo(x):mf==="still"?isStill(x):mf==="image"?!isVideo(x):true))
-  && (bv==="all"||(bv==="exclude"?!x.bubble:x.bubble))
+  && (bv==="all"||(bv==="none"?!SceneCategories.ids(x).length:bv.startsWith("exclude:")?!SceneCategories.ids(x).includes(bv.slice(8)):SceneCategories.ids(x).includes(bv)))
   && (!ff||(ff==="fav"?x.fav: !isGroup(x)&&getMembers(x).length===0 && !x.activity && !(x.tags||[]).length));
 }
 function filtered(){
@@ -616,7 +623,7 @@ function filtered(){
  return arr;
 }
 function memberCountFor(label,baseItems){
- if(label==="버블")return baseItems.filter(x=>x.bubble).length;
+
  return baseItems.filter(x=>memberMatches(x,new Set([label]))).length;
 }
 
@@ -685,7 +692,7 @@ function cardHTML(x){
      <button type="button" class="fav" aria-label="최애 지정" aria-pressed="${!!x.fav}">${x.fav?"★":"☆"}</button>
     </div>
     <div class="meta">${esc([memberText(x),x.date,x.activity].filter(Boolean).join(" · ")||"미분류")}</div>
-    <div class="tags">${isVideo(x)?`<span class="video-badge">🎥 영상</span>`:""}${isGif(x)?`<span class="bubble-badge">🎞️ GIF</span>`:""}${x.bubble?`<span class="bubble-badge">🫧 버블</span>`:""}${x.membership?`<span class="bubble-badge">플챗맴버쉽</span>`:""}${(x.tags||[]).slice(0,4).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
+    <div class="tags">${isVideo(x)?`<span class="video-badge">🎥 영상</span>`:""}${isGif(x)?`<span class="bubble-badge">🎞️ GIF</span>`:""}${SceneCategories.names(x).map(name=>`<span class="bubble-badge">${esc(name)}</span>`).join("")}${(x.tags||[]).slice(0,4).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
    </div>
   </article>`;
 }
@@ -722,7 +729,7 @@ function render(){
  const countBase=items.filter(passesNonMemberFilters);
  document.querySelector("#memberChips").innerHTML=
   `<button class="chip ${memberFilters.size===0?"active":""}" data-m="">전체 <span class="chip-count">${countBase.length}</span></button>`+
-  MEMBER_FILTERS.map(m=>`<button class="chip ${memberFilters.has(m)?"active":""}" data-m="${m}" aria-pressed="${memberFilters.has(m)}">${m} <span class="chip-count">${memberCountFor(m,countBase)}</span></button>`).join("");
+  MEMBER_FILTERS.map(m=>`<button class="chip ${memberFilters.has(m)?"active":""}" data-m="${esc(m)}" aria-pressed="${memberFilters.has(m)}">${esc(SceneCategories.label(m))} <span class="chip-count">${memberCountFor(m,countBase)}</span></button>`).join("");
 
  const arr=filtered(), favs=items.filter(x=>x.fav).length, un=items.filter(x=>!isGroup(x)&&getMembers(x).length===0).length, gifs=items.filter(isGif).length, videos=items.filter(isVideo).length;
  const totalPages=Math.max(1,Math.ceil(arr.length/pageSize));
@@ -737,10 +744,10 @@ function render(){
   g.innerHTML=MEMBER_FILTERS.map(m=>{
    const group=pageArr.filter(x=>memberMatches(x,new Set([m])));
    if(!group.length)return "";
-   return `<section class="member-section"><div class="member-head"><h2>${esc(m)}</h2><span class="member-count">이 페이지 ${group.length}장</span></div><div class="grid">${group.map(cardHTML).join("")}</div><div class="member-divider"></div></section>`;
+   return `<section class="member-section"><div class="member-head"><h2>${esc(SceneCategories.label(m))}</h2><span class="member-count">이 페이지 ${group.length}장</span></div><div class="grid">${group.map(cardHTML).join("")}</div><div class="member-divider"></div></section>`;
   }).join("");
  }else{
-  const header=document.querySelector("#viewMode").value==="member"&&memberFilters.size?`<section class="member-section"><div class="member-head"><h2>${esc([...memberFilters].join(" · "))}</h2><span class="member-count">${arr.length}장</span></div></section>`:"";
+  const header=document.querySelector("#viewMode").value==="member"&&memberFilters.size?`<section class="member-section"><div class="member-head"><h2>${esc([...memberFilters].map(SceneCategories.label).join(" · "))}</h2><span class="member-count">${arr.length}장</span></div></section>`:"";
   g.innerHTML=`${header}<div class="grid">${pageArr.map(cardHTML).join("")}</div>`;
  }
  observeGalleryMedia();
@@ -765,7 +772,7 @@ function showLightbox(id){
   lightboxImage.classList.remove("media-hidden");lightboxImage.src=mediaUrl;
  }
  lightboxTitle.textContent=x.name||x.originalName||(isVideo(x)?"동영상":"사진");
- lightboxMeta.textContent=[memberText(x),x.membership?"플챗맴버쉽":"",x.date,x.activity,x.originalName].filter(Boolean).join(" · ");
+ lightboxMeta.textContent=[memberText(x),...SceneCategories.names(x),x.date,x.activity,x.originalName].filter(Boolean).join(" · ");
  const arr=lightboxItems(), idx=arr.findIndex(v=>v.id===id);
  prevPhoto.disabled=arr.length<2;nextPhoto.disabled=arr.length<2;
  if(!lightboxDialog.open)lightboxDialog.showModal();
@@ -796,8 +803,7 @@ function openEdit(id){
  document.querySelector("#editMembers").innerHTML=pickerHTML("editMember",getMembers(x),isGroup(x));
  document.querySelector("#editDate").value=x.date||"";
  document.querySelector("#editActivity").value=x.activity||"";
- document.querySelector("#editBubble").checked=!!x.bubble;
- editMembership.checked=!!x.membership;
+ SceneCategories.fill("editCategories",SceneCategories.ids(x));
  document.querySelector("#editSource").value=x.source||"";
  document.querySelector("#editTags").value=(x.tags||[]).join(", ");
  document.querySelector("#editNote").value=x.note||"";
@@ -873,7 +879,7 @@ headerMenus.forEach(menu=>{
 });
 document.addEventListener("click",e=>{headerMenus.forEach(menu=>{if(!menu.contains(e.target))menu.open=false})});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")headerMenus.forEach(menu=>{if(menu.open){menu.open=false;menu.querySelector("summary").focus()}})});
-["search","sort","activityFilter","favFilter","mediaFilter","bubbleView","viewMode","dateFrom","dateTo"].forEach(id=>document.querySelector("#"+id).addEventListener(id==="search"?"input":"change",()=>{if(id==="sort")resetRandomOrder();currentPage=1;render()}));
+["search","sort","activityFilter","favFilter","mediaFilter","categoryView","viewMode","dateFrom","dateTo"].forEach(id=>document.querySelector("#"+id).addEventListener(id==="search"?"input":"change",()=>{if(id==="sort")resetRandomOrder();currentPage=1;render()}));
 document.querySelector("#photoSize").addEventListener("change",e=>{document.body.dataset.photoSize=e.target.value;localStorage.setItem("sceneBoxPhotoSize",e.target.value);currentPage=1;render();});
 document.querySelector("#pagination").addEventListener("click",e=>{
  const b=e.target.closest(".page-btn[data-page]");if(!b||b.disabled)return;
@@ -894,7 +900,7 @@ document.querySelector("#saveEdit").onclick=async()=>{
  const chosen=readPicker("editMember");
  Object.assign(x,{
   name:editTitle.value.trim()||x.name,
-  members:chosen.members,group:chosen.group,member:chosen.group?"단체":(chosen.members[0]||"미분류"),date:editDate.value,bubble:editBubble.checked,membership:editMembership.checked,activity:editActivity.value.trim(),source:editSource.value.trim(),
+  members:chosen.members,group:chosen.group,member:chosen.group?"단체":(chosen.members[0]||"미분류"),date:editDate.value,categoryIds:SceneCategories.read("editCategories"),bubble:false,membership:false,activity:editActivity.value.trim(),source:editSource.value.trim(),
   tags:editTags.value.split(",").map(v=>v.trim()).filter(Boolean),note:editNote.value.trim()
  });
  await put(x);editDialog.close();await load();
@@ -904,19 +910,6 @@ document.querySelector("#deleteOne").onclick=async()=>{
  await del(editingId);editDialog.close();await load();
 };
 document.querySelector("#clearSelect").onclick=()=>{selected.clear();bulkChosenMembers.clear();updateBulkMemberButtons();syncCardSelection()};
-document.querySelector("#bulkBubble").onclick=async()=>{
- const chosen=[...selected].map(id=>items.find(v=>v.id===id)).filter(Boolean);
- const makeBubble=!chosen.every(x=>x.bubble);
- for(const x of chosen){x.bubble=makeBubble;await put(x)}
- selected.clear();await load();
- alert(makeBubble?"선택한 사진을 버블 사진으로 지정했습니다.":"선택한 사진의 버블 지정을 해제했습니다.");
-};
-document.querySelector("#bulkMembership").onclick=async()=>{
- const chosen=items.filter(x=>selected.has(x.id));
- const enabled=!chosen.every(x=>x.membership);
- for(const x of chosen){x.membership=enabled;await put(x)}
- selected.clear();await load();
-};
 function shareFile(x,index){
  const name=String(index+1).padStart(3,"0")+"_"+safeDownloadName(x);
  const ext=name.split(".").pop().toLowerCase();
@@ -1088,7 +1081,7 @@ backupBtn.onclick=async()=>{
    entries.push({name:fileName,data:await x.blob.arrayBuffer()});
    const copy={...x,photoFile:fileName,mimeType:x.blob.type};delete copy.blob;meta.push(copy);n++;
   }
-  const manifest={app:"SCENE BOX",version:3,format:"zip",createdAt:new Date().toISOString(),settings:{heroBackground:getBgSettings(),pageBackground:getPageBgSettings()},photos:meta};
+  const manifest={app:"SCENE BOX",version:4,format:"zip",createdAt:new Date().toISOString(),settings:{categories:SceneCategories.all(),heroBackground:getBgSettings(),pageBackground:getPageBgSettings()},photos:meta};
   entries.unshift({name:"backup.json",data:new TextEncoder().encode(JSON.stringify(manifest,null,2))});
   const zip=await makeZip(entries);downloadBlob(zip,`scene-box-full-backup-${new Date().toISOString().slice(0,10)}.zip`);
   alert("ZIP 전체 백업이 저장되었습니다. 이 파일 하나에 미디어 원본과 모든 분류 정보가 들어 있습니다.");
@@ -1109,15 +1102,17 @@ restoreInput.onchange=async e=>{
    if(!confirm(`${data.photos.length}장의 사진을 복원할까요?`))return;
    if(data.settings?.heroBackground)await setBgSettings(data.settings.heroBackground);
    if(data.settings?.pageBackground)await setPageBgSettings(data.settings.pageBackground);
-   for(const p of data.photos){const bytes=files.get(p.photoFile);if(!bytes)continue;const item={...p,blob:new Blob([bytes],{type:p.mimeType||"image/jpeg"})};delete item.photoFile;delete item.mimeType;await put(item)}
+   const categoryMap=await SceneCategories.restore(data.settings?.categories);
+   for(const p of data.photos){const bytes=files.get(p.photoFile);if(!bytes)continue;const item={...p,blob:new Blob([bytes],{type:p.mimeType||"image/jpeg"})};delete item.photoFile;delete item.mimeType;delete item.contentVersion;if(item.categoryIds)item.categoryIds=item.categoryIds.map(id=>categoryMap[id]||id);await put(item)}
    await load();alert("ZIP 복원이 완료되었습니다.");
   }else{
    const data=JSON.parse(await file.text());
-   if(data.settings?.heroBackground)await setBgSettings(data.settings.heroBackground);
-   if(data.settings?.pageBackground)await setPageBgSettings(data.settings.pageBackground);
    if(data.app!=="SCENE BOX"||!Array.isArray(data.photos))throw new Error("SCENE BOX 백업 파일이 아닙니다.");
    if(!confirm(`${data.photos.length}장의 예전 JSON 백업을 복원할까요?`))return;
-   for(const p of data.photos){const item={...p,blob:dataURLToBlob(p.blobData)};delete item.blobData;await put(item)}
+   if(data.settings?.heroBackground)await setBgSettings(data.settings.heroBackground);
+   if(data.settings?.pageBackground)await setPageBgSettings(data.settings.pageBackground);
+   const categoryMap=await SceneCategories.restore(data.settings?.categories);
+   for(const p of data.photos){const item={...p,blob:dataURLToBlob(p.blobData)};delete item.blobData;delete item.contentVersion;if(item.categoryIds)item.categoryIds=item.categoryIds.map(id=>categoryMap[id]||id);await put(item)}
    await load();alert("JSON 복원이 완료되었습니다.");
   }
  }catch(err){alert("복원 실패: "+err.message)}finally{restoreInput.value=""}
@@ -1135,7 +1130,7 @@ document.querySelector("#homeBtn").onclick=()=>{
  document.querySelector("#activityFilter").value="";
  document.querySelector("#favFilter").value="";
  document.querySelector("#mediaFilter").value="";
- document.querySelector("#bubbleView").value="all";
+ document.querySelector("#categoryView").value="all";
  document.querySelector("#dateFrom").value="";
  document.querySelector("#dateTo").value="";
  document.querySelector("#viewMode").value="grid";
@@ -1147,8 +1142,8 @@ document.querySelector("#homeBtn").onclick=()=>{
 document.querySelector("#exportBtn").onclick=()=>{
  const ok=confirm("목록 CSV 안내\n\n사진 원본은 포함하지 않고 제목·원본 파일명·멤버·날짜·활동·태그·메모 같은 목록만 표 파일로 저장합니다. 엑셀이나 구글 스프레드시트에서 열 수 있습니다.\n\nCSV 목록을 저장할까요?");
  if(!ok)return;
- const rows=[["제목","원본 파일명","형식","멤버","촬영일","활동","출처","태그","메모","최애","플챗맴버쉽"]];
- items.forEach(x=>rows.push([x.name,x.originalName||x.name,isVideo(x)?"동영상":isGif(x)?"GIF":"사진",memberText(x),x.date,x.activity,x.source,(x.tags||[]).join("|"),x.note,x.fav?"Y":"N",x.membership?"Y":"N"]));
+ const rows=[["제목","원본 파일명","형식","멤버","촬영일","활동","출처","태그","메모","최애","자료 분류"]];
+ items.forEach(x=>rows.push([x.name,x.originalName||x.name,isVideo(x)?"동영상":isGif(x)?"GIF":"사진",memberText(x),x.date,x.activity,x.source,(x.tags||[]).join("|"),x.note,x.fav?"Y":"N",SceneCategories.names(x).join("|")]));
  const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v||"").replaceAll('"','""')}"`).join(",")).join("\n");
  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="scene-box-media-list.csv";a.click();
 };
@@ -1159,7 +1154,7 @@ document.querySelector("#exportBtn").onclick=()=>{
  const savedSize=localStorage.getItem("sceneBoxPhotoSize")||"small";
  document.querySelector("#photoSize").value=savedSize;
  document.body.dataset.photoSize=savedSize;
- db=await openDB();await loadBgSettings();await load();
+ db=await openDB();await SceneData.init(db);await SceneCategories.init();await loadBgSettings();await load();await SceneDrive.init();
 })();
 </script>
 </body>
