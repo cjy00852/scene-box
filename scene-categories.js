@@ -4,9 +4,9 @@ window.SceneCategories=(()=>{
  const all=()=>categories.map(c=>({...c}));
  const ids=x=>Array.isArray(x.categoryIds)?x.categoryIds:SceneData.legacyCategories(x);
  const names=x=>ids(x).map(id=>categories.find(c=>c.id===id)?.name).filter(Boolean);
- function options(selected=[]){return categories.map(c=>`<option value="${escape(c.id)}" ${selected.includes(c.id)?'selected':''}>${escape(c.name)}</option>`).join('')}
- function fill(id,selected=[]){el(id).innerHTML=options(selected)}
- function read(id){return [...el(id).selectedOptions].map(o=>o.value)}
+ function options(selected=[]){return categories.filter(c=>c.id!=='category-other').map(c=>`<option value="${escape(c.id)}" ${selected.includes(c.id)?'selected':''}>${escape(c.name)}</option>`).join('')}
+ function fill(id,selected=[]){el(id).dataset.keepOther=String(id==='editCategories'&&selected.includes('category-other'));el(id).innerHTML=options(selected)}
+ function read(id){const values=[...el(id).selectedOptions].map(o=>o.value);return !values.length&&el(id).dataset.keepOther==='true'?['category-other']:values}
  function refresh(){
   MEMBER_FILTERS=['미분류',...ASSIGNABLE,'단체',...categories.map(c=>'category:'+c.id)];
   const selected=el('categoryView').value;

@@ -22,6 +22,8 @@ async function main(){
  await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFunction(()=>typeof SceneCategories!=='undefined'&&SceneCategories.all().length);
  assert.equal(await page.locator('#memberChips .filter-group').count(),2);assert.equal(await page.locator('#categoryChips [data-m="category:category-other"]').count(),0);assert.equal(await page.locator('#categoryChips > :last-child').getAttribute('aria-label'),'사용자 분류 추가');
  promptValue='팬사인회';await page.click('.category-add');await page.waitForFunction(()=>SceneCategories.all().some(c=>c.name==='팬사인회'));
+ for(const id of ['importCategories','editCategories','bulkCategories'])assert.equal(await page.locator('#'+id+' option[value="category-other"]').count(),0);
+ assert.equal(await page.locator('#bulkMemberButtons [data-bulk-member="기타"]').count(),1);
  const cat=await page.evaluate(()=>SceneCategories.all().find(c=>c.name==='팬사인회').id);
  assert.equal(await page.locator('[data-m="category:'+cat+'"]').count(),1);
  await page.click('[data-m="category:'+cat+'"]');assert.equal(await page.evaluate(id=>memberFilters.has('category:'+id),cat),true);await page.click('#homeBtn');
@@ -57,7 +59,10 @@ async function main(){
  assert.equal(await page.locator('#categoryChips .chip').nth(1).getAttribute('data-m'),'category:'+cat);
  await page.locator('.header-menu summary').nth(1).click();await page.click('#categoryManagerBtn');promptValue='변경한 분류';await page.locator('[data-category-id="'+cat+'"] [data-action="rename"]').click();await page.waitForFunction(()=>SceneCategories.all().some(c=>c.name==='변경한 분류'));
  await page.locator('[data-category-id="'+cat+'"] [data-action="delete"]').click();await page.waitForFunction(()=>items.every(x=>x.categoryIds.includes('category-other')));assert.equal(await page.evaluate(()=>items.length),3);
- await page.click('#closeCategories');await page.setViewportSize({width:320,height:800});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
+ await page.click('#closeCategories');
+ await page.evaluate(()=>openEdit('local-0'));assert.equal(await page.locator('#editCategories option[value="category-other"]').count(),0);
+ await page.click('#saveEdit');await page.waitForFunction(()=>!editDialog.open);assert.equal(await page.evaluate(()=>items.find(x=>x.id==='local-0').categoryIds.includes('category-other')),true);
+ await page.setViewportSize({width:320,height:800});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
  console.log('PASS category + placement/add/validation/select/rename/delete; selection controls; blank/cancel/date-only/activity-only/both edits; original and metadata preservation; reload; viewer; mobile width');
  }finally{await browser.close()}
 }
