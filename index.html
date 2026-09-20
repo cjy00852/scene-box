@@ -164,6 +164,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
 .bulk{width:calc(100vw - 20px);max-width:660px;padding:8px;overflow:hidden;gap:6px}.bulk.show{display:flex;flex-direction:column;align-items:stretch}.bulk::after{display:none}.bulk-row{display:flex;gap:5px;align-items:center;overflow-x:auto;overflow-y:hidden;max-width:100%;scrollbar-width:thin;overscroll-behavior-x:contain}.bulk-row>*{flex:0 0 auto}.bulk .btn,.bulk .member-btn{font-size:12px;padding:8px 9px;min-height:36px;margin:0}.bulk .member-actions{gap:4px}.bulk select[multiple]{flex:1 1 100px;min-width:75px;max-width:none;width:100px;height:36px;min-height:36px;font-size:13px;padding:3px;border:1px solid #c9baff}.bulk-row-actions .btn{flex:1 0 auto}.bulk>.bulk-count{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 #importCategories,#editCategories{height:44px;min-height:44px;max-height:44px;overflow-y:auto;padding:8px 12px}
 .quick-help{display:flex;gap:8px;align-items:center}#tutorialDialog{width:min(520px,calc(100vw - 24px));padding:0;border:0;border-radius:22px}#tutorialDialog .tutorial-shell{display:flex;flex-direction:column;max-height:85dvh;padding:22px;gap:14px}.tutorial-top{display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:13px}#tutorialContent{overflow-y:auto;min-height:0}#tutorialTitle{font-size:23px;margin:0 0 12px}#tutorialLead{font-weight:650;line-height:1.6}#tutorialSample{background:#eee7fb;color:#51367d;padding:16px;border-radius:14px;line-height:1.7;overflow-wrap:anywhere}#tutorialBody{line-height:1.8;color:#554e60}#tutorialDialog .actions{flex-shrink:0;margin:0}#tutorialClose{padding:8px 12px}#tutorialDialog button:focus-visible{outline:3px solid #8a6ee8;outline-offset:2px}
+body[data-photo-columns] .grid{grid-template-columns:repeat(var(--photo-columns,3),minmax(0,1fr))}
 </style>
 </head>
 <body>
@@ -210,7 +211,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
   <select class="field" id="favFilter"><option value="">전체 미디어</option><option value="fav">★ 최애만</option><option value="untagged">미분류만</option></select>
   <select class="field" id="mediaFilter"><option value="">사진+GIF+영상 전체</option><option value="video">🎥 동영상만</option><option value="gif">🎞️ GIF만</option><option value="still">🖼️ 일반 사진만</option><option value="image">🖼️ 사진+GIF만</option></select>
   <select class="field" id="categoryView" aria-label="자료 분류"></select>
-  <select class="field" id="photoSize"><option value="tiny">매우 작게</option><option value="small">작게</option><option value="normal">보통</option><option value="large">크게</option><option value="list">리스트</option></select>
+  <select class="field" id="photoSize" aria-label="사진 열 수"><option value="2">2열</option><option value="3" selected>3열</option><option value="4">4열</option><option value="5">5열</option><option value="6">6열</option></select>
   <select class="field" id="viewMode"><option value="grid">전체 그리드</option><option value="member">멤버별 나누기</option></select>
   <div class="date-range" aria-label="촬영일 기간 검색">
    <input class="field" type="date" id="dateFrom" aria-label="촬영 시작일" title="촬영 시작일">
@@ -969,7 +970,8 @@ headerMenus.forEach(menu=>{
 document.addEventListener("click",e=>{headerMenus.forEach(menu=>{if(!menu.contains(e.target))menu.open=false})});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")headerMenus.forEach(menu=>{if(menu.open){menu.open=false;menu.querySelector("summary").focus()}})});
 ["search","sort","activityFilter","favFilter","mediaFilter","categoryView","viewMode","dateFrom","dateTo"].forEach(id=>document.querySelector("#"+id).addEventListener(id==="search"?"input":"change",()=>{if(id==="sort")resetRandomOrder();currentPage=1;render()}));
-document.querySelector("#photoSize").addEventListener("change",e=>{document.body.dataset.photoSize=e.target.value;localStorage.setItem("sceneBoxPhotoSize",e.target.value);currentPage=1;render();});
+function applyPhotoColumns(value){const columns=['2','3','4','5','6'].includes(String(value))?String(value):'3';document.querySelector('#photoSize').value=columns;document.body.dataset.photoColumns=columns;document.body.style.setProperty('--photo-columns',columns);document.body.dataset.photoSize=({'2':'large','3':'normal','4':'small','5':'tiny','6':'tiny'})[columns]}
+document.querySelector("#photoSize").addEventListener("change",e=>{applyPhotoColumns(e.target.value);localStorage.setItem("sceneBoxPhotoColumns",e.target.value);currentPage=1;render();});
 document.querySelector("#pagination").addEventListener("click",e=>{
  const b=e.target.closest(".page-btn[data-page]");if(!b||b.disabled)return;
  currentPage=Math.max(1,Number(b.dataset.page)||1);render();window.scrollTo({top:document.querySelector("#gallery").offsetTop-80,behavior:"smooth"});
@@ -1240,9 +1242,7 @@ document.querySelector("#exportBtn").onclick=()=>{
 
 
 (async()=>{
- const savedSize=localStorage.getItem("sceneBoxPhotoSize")||"small";
- document.querySelector("#photoSize").value=savedSize;
- document.body.dataset.photoSize=savedSize;
+ applyPhotoColumns(localStorage.getItem("sceneBoxPhotoColumns")||"3");
  db=await openDB();await SceneData.init(db);await SceneCategories.init();await loadBgSettings();await load();await SceneDrive.init();SceneTutorial.init(items.length===0);
 })();
 </script>

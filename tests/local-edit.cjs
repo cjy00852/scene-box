@@ -34,6 +34,9 @@ async function main(){
  promptValue=' 팬사인회 ';await page.click('.category-add');promptValue='   ';await page.click('.category-add');assert.equal(await page.evaluate(()=>SceneCategories.all().length),size);
  await page.evaluate(async cat=>{for(let i=0;i<3;i++)await put({id:'local-'+i,name:'media '+i,blob:new Blob(['original-'+i],{type:i===1?'video/mp4':'image/jpeg'}),originalName:i===1?'original.mp4':'original.jpg',members:['원이'],categoryIds:[cat],date:'2026-01-0'+(i+1),activity:'행사 '+i,tags:['보존'],note:'메모',fav:true,addedAt:1});await load()},cat);
  const snapshot=()=>page.evaluate(async()=>{const all=await Promise.all(items.map(async x=>({...x,blob:await x.blob.text()})));return all.sort((a,b)=>a.id.localeCompare(b.id))});
+ assert.equal(await page.locator('#photoSize').inputValue(),'3');
+ for(const width of [320,1200]){await page.setViewportSize({width,height:800});for(const n of ['2','3','4','5','6']){await page.selectOption('#photoSize',n);assert.equal(await page.locator('#gallery .grid').first().evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),Number(n));}}
+ await page.reload();await page.waitForFunction(()=>typeof items!=='undefined'&&items.length===3);assert.equal(await page.locator('#photoSize').inputValue(),'6');await page.selectOption('#photoSize','3');await page.setViewportSize({width:390,height:844});
  const before=await snapshot();
  assert.equal(await page.locator('#selectionModeBtn,#selectionActions').count(),0);
  await page.locator('.card[data-id="local-0"] .check').check();assert.equal(await page.locator('#selectedCount').innerText(),'1장 선택');
