@@ -19,6 +19,7 @@ async function main(){
  page.on('pageerror',e=>errors.push(e.message));let promptValue='',acceptConfirm=true;
  page.on('dialog',d=>{messages.push(d.message());return d.type()==='confirm'&&!acceptConfirm?d.dismiss():d.accept(d.type()==='prompt'?promptValue:undefined)});
  await page.route('https://accounts.google.com/**',r=>r.abort());await page.route('https://www.googleapis.com/**',r=>r.abort());
+ await page.addInitScript(()=>localStorage.setItem('scene-box-tutorial-seen-v1','yes'));
  await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFunction(()=>typeof SceneCategories!=='undefined'&&SceneCategories.all().length);
  assert.equal(await page.locator('#memberChips .filter-group').count(),2);assert.equal(await page.locator('#categoryChips [data-m="category:category-other"]').count(),0);assert.equal(await page.locator('#categoryChips > :last-child').getAttribute('aria-label'),'사용자 분류 추가');
  promptValue='팬사인회';await page.click('.category-add');await page.waitForFunction(()=>SceneCategories.all().some(c=>c.name==='팬사인회'));

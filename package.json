@@ -1,5 +1,11 @@
 {
   "private": true,
-  "scripts": { "test": "node tests/core.cjs", "test:local-edit": "node tests/local-edit.cjs" },
-  "devDependencies": { "playwright": "1.62.1" }
+  "scripts": {
+    "test": "node tests/core.cjs",
+    "test:local-edit": "node tests/local-edit.cjs",
+    "test:tutorial": "node tests/tutorial.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
 }

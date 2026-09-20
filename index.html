@@ -163,6 +163,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
 .bulk{width:calc(100vw - 20px);max-width:1100px;max-height:none;flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:#bda5ff #211a30;padding:10px 12px 14px}.bulk>*{flex:0 0 auto;white-space:nowrap}.bulk>b{width:auto;text-align:left}.bulk .member-actions{flex-wrap:nowrap;justify-content:flex-start}.bulk .btn{white-space:nowrap;min-height:42px}.bulk select[multiple]{width:140px;height:64px;min-height:64px;overflow-y:auto;font-size:14px}.bulk::after{content:"";flex:0 0 4px}dialog{max-height:85vh;max-height:85dvh;overflow-y:auto}#categoryList{max-height:42vh;max-height:42dvh;overflow-y:auto;overscroll-behavior:contain}.category-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px}.category-row>span{grid-column:1/-1}.category-move{display:flex;gap:4px}.category-row .btn{padding:8px 10px;font-size:13px}
 .bulk{width:calc(100vw - 20px);max-width:660px;padding:8px;overflow:hidden;gap:6px}.bulk.show{display:flex;flex-direction:column;align-items:stretch}.bulk::after{display:none}.bulk-row{display:flex;gap:5px;align-items:center;overflow-x:auto;overflow-y:hidden;max-width:100%;scrollbar-width:thin;overscroll-behavior-x:contain}.bulk-row>*{flex:0 0 auto}.bulk .btn,.bulk .member-btn{font-size:12px;padding:8px 9px;min-height:36px;margin:0}.bulk .member-actions{gap:4px}.bulk select[multiple]{flex:1 1 100px;min-width:75px;max-width:none;width:100px;height:36px;min-height:36px;font-size:13px;padding:3px;border:1px solid #c9baff}.bulk-row-actions .btn{flex:1 0 auto}.bulk>.bulk-count{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 #importCategories,#editCategories{height:44px;min-height:44px;max-height:44px;overflow-y:auto;padding:8px 12px}
+.quick-help{display:flex;gap:8px;align-items:center}#tutorialDialog{width:min(520px,calc(100vw - 24px));padding:0;border:0;border-radius:22px}#tutorialDialog .tutorial-shell{display:flex;flex-direction:column;max-height:85dvh;padding:22px;gap:14px}.tutorial-top{display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:13px}#tutorialContent{overflow-y:auto;min-height:0}#tutorialTitle{font-size:23px;margin:0 0 12px}#tutorialLead{font-weight:650;line-height:1.6}#tutorialSample{background:#eee7fb;color:#51367d;padding:16px;border-radius:14px;line-height:1.7;overflow-wrap:anywhere}#tutorialBody{line-height:1.8;color:#554e60}#tutorialDialog .actions{flex-shrink:0;margin:0}#tutorialClose{padding:8px 12px}#tutorialDialog button:focus-visible{outline:3px solid #8a6ee8;outline-offset:2px}
 </style>
 </head>
 <body>
@@ -171,7 +172,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
  <div class="top">
   <output id="storageUsage" class="storage-usage" aria-live="polite">저장 용량 계산 중…</output>
   <div><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE · v12</div></div>
-  <button class="btn primary" id="autoNameBtn">이름 바꾸기</button><nav class="header-actions" aria-label="앱 메뉴">
+  <div class="quick-help"><button class="btn primary" id="autoNameBtn">이름 바꾸기</button><button class="btn" id="tutorialBtn">사용법</button></div><nav class="header-actions" aria-label="앱 메뉴">
    <button class="btn" id="homeBtn" title="전체 화면으로 돌아가기">⌂ 홈</button>
    <details class="header-menu"><summary class="btn">배경 설정 <span aria-hidden="true">⌄</span></summary><div class="header-menu-panel">
     <button class="btn" id="backgroundBtn">상단 배경</button><button class="btn" id="pageBackgroundBtn">전체 배경</button>
@@ -191,7 +192,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
  <section class="hero">
   <div>
    <h1>리센느 사진을<br>내 방식대로 정리해요.</h1>
-   <p>멤버·날짜·활동·태그·최애 표시까지. 사진과 영상은 외부 서버로 전송되지 않습니다.</p><p class="small" style="color:#d9ccec;margin-top:10px"><span class="status-dot"></span><span id="appStatus">기기 내부 저장 · 오프라인 사용 가능</span></p>
+   <p>멤버·날짜·활동·태그·최애 표시까지. 사진과 영상은 기기에 저장되며, Drive를 연결하면 내 Drive에도 업로드됩니다.</p><p class="small" style="color:#d9ccec;margin-top:10px"><span class="status-dot"></span><span id="appStatus">기기 내부 저장 · 오프라인 사용 가능</span></p>
   </div>
   <div class="drop" id="dropZone" role="button" tabindex="0" aria-label="사진·영상 추가">
    <div><b>사진·GIF·동영상을 여기에 끌어놓기</b><br><span class="small" style="color:#ddd">또는 눌러서 여러 파일 선택</span></div>
@@ -232,6 +233,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
 </div>
 
 
+<dialog id="tutorialDialog" aria-labelledby="tutorialTitle"><div class="tutorial-shell"><div class="tutorial-top"><span>SCENE BOX 사용법 · <span id="tutorialProgress"></span></span><button class="btn" id="tutorialClose" autofocus>닫기</button></div><div id="tutorialContent" aria-live="polite"><h2 id="tutorialTitle"></h2><p id="tutorialLead"></p><div id="tutorialSample"></div><p id="tutorialBody"></p></div><div class="actions"><button class="btn" id="tutorialPrev">이전</button><button class="btn primary" id="tutorialNext">다음</button></div></div></dialog>
 <dialog id="autoNameDialog"><div class="modal"><h2>전체 이름 자동 정리</h2><p class="hint">선택·검색 범위와 관계없이 전체 자료를 확인합니다. 날짜_행사/활동_멤버이름_번호 형식으로 이름을 만듭니다. 예: 260919_TMA_메이_001.jpg. 이전 하이픈 형식이나 현재 행사와 다른 이름은 다시 정리하며, 새 형식으로 정리된 이름은 건너뜁니다. 행사가 없으면 일반으로 표시합니다. 날짜가 없으면 등록일을 사용합니다. 파일 내용과 분류는 유지됩니다. Drive 연결 중이면 기존 Drive 파일도 같은 이름으로 변경합니다.</p><p id="autoNameCount" aria-live="polite"></p><pre id="autoNamePreview" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:35vh;overflow:auto"></pre><div class="actions"><button class="btn" id="cancelAutoName">취소</button><button class="btn primary" id="saveAutoName">전체 적용 · Drive 이름 맞추기</button></div></div></dialog>
 <dialog id="bulkRenameDialog"><div class="modal"><h2>선택 자료 이름 변경</h2><p id="renameCount"></p><p class="hint">SCENE BOX 표시 이름과 저장된 파일명을 함께 바꿉니다. 확장자는 유지하며 현재 목록 순서대로 번호를 붙입니다. 휴대폰 원본은 그대로이며 Drive 연결 시 같은 이름으로 맞춥니다.</p><label>공통 이름<input class="field" id="renamePrefix" maxlength="100" placeholder="예: 팬사인회"></label><label>시작 번호<input class="field" id="renameStart" type="number" min="1" max="999999" step="1" value="1"></label><pre id="renamePreview" style="white-space:pre-wrap;overflow-wrap:anywhere" aria-live="polite"></pre><div class="actions"><button class="btn" id="cancelRename">취소</button><button class="btn primary" id="saveRename">이름 변경</button></div></div></dialog>
 <dialog id="bulkEditDialog"><div class="modal"><h2>날짜·행사 일괄 수정</h2><p id="bulkEditCount"></p><p class="hint">입력한 항목만 변경합니다. 비워 둔 항목은 기존 값을 유지합니다.</p><label>날짜<input class="field" type="date" id="bulkEditDate"></label><label>행사<input class="field" id="bulkEditActivity" list="bulkActivityOptions" placeholder="행사 입력 또는 선택"></label><datalist id="bulkActivityOptions"></datalist><div class="actions"><button class="btn" id="cancelBulkEdit">취소</button><button class="btn primary" id="saveBulkEdit">변경 적용</button></div></div></dialog>
@@ -330,6 +332,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
  </div>
 </dialog>
 
+<script src="tutorial.js"></script>
 <script src="google-config.js"></script>
 <script src="scene-data.js"></script>
 <script src="scene-categories.js?v=28"></script>
@@ -1240,7 +1243,7 @@ document.querySelector("#exportBtn").onclick=()=>{
  const savedSize=localStorage.getItem("sceneBoxPhotoSize")||"small";
  document.querySelector("#photoSize").value=savedSize;
  document.body.dataset.photoSize=savedSize;
- db=await openDB();await SceneData.init(db);await SceneCategories.init();await loadBgSettings();await load();await SceneDrive.init();
+ db=await openDB();await SceneData.init(db);await SceneCategories.init();await loadBgSettings();await load();await SceneDrive.init();SceneTutorial.init(items.length===0);
 })();
 </script>
 </body>
