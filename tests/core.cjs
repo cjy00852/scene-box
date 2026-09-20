@@ -16,6 +16,7 @@ async function main(){
  try{
  const context=await browser.newContext({serviceWorkers:'block',viewport:{width:390,height:844}}),page=await context.newPage(),base='http://127.0.0.1:'+server.address().port,errors=[];
  page.on('pageerror',e=>errors.push(e.message));
+ await context.route('**/google-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.SCENE_GOOGLE_CLIENT_ID="";'}));
  let promptValue='';page.on('dialog',d=>d.accept(d.type()==='prompt'?promptValue:undefined));
  await page.goto(base+'/seed');
  await page.evaluate(async()=>{
@@ -72,7 +73,7 @@ async function main(){
  // Fake API: no real credentials, uploads, or Google requests leave this test context.
  const files=new Map(),sessions=new Map();let ids=0,oauthCalls=0,uploadCalls=0,failUpload=false,unauthorized=false,alwaysFail=false;
  await context.route('**/google-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.SCENE_GOOGLE_CLIENT_ID="test-client";'}));
- await context.route('https://accounts.google.com/gsi/client',r=>r.fulfill({contentType:'text/javascript',body:'window.google={accounts:{oauth2:{initTokenClient:o=>({requestAccessToken:()=>{window.testOAuthCalls=(window.testOAuthCalls||0)+1;o.callback({access_token:"TEST_ONLY",expires_in:3600})}})}}};'}));
+ await context.route('https://accounts.google.com/gsi/client',r=>r.fulfill({contentType:'text/javascript',body:'window.google={accounts:{oauth2:{initTokenClient:o=>({requestAccessToken:()=>{window.testOAuthCalls=(window.testOAuthCalls||0)+1;Object.defineProperty(document,"hidden",{configurable:true,value:true});o.callback({access_token:"TEST_ONLY",expires_in:3600});setTimeout(()=>{Object.defineProperty(document,"hidden",{configurable:true,value:false});document.dispatchEvent(new Event("visibilitychange"))},100)}})}}};'}));
  await context.addInitScript(()=>{Object.defineProperty(navigator,'wakeLock',{value:{request:async()=>{window.wakeRequests=(window.wakeRequests||0)+1;return {release:async()=>{window.wakeReleases=(window.wakeReleases||0)+1}}}}})});
  await context.route('https://www.googleapis.com/**',async route=>{
   const req=route.request(),u=new URL(req.url()),method=req.method(),body=()=>JSON.parse(req.postData()||'{}');

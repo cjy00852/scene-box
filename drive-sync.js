@@ -3,15 +3,16 @@ window.SceneDrive=(()=>{
  const API='https://www.googleapis.com/drive/v3',UPLOAD='https://www.googleapis.com/upload/drive/v3';
  const SCOPE='https://www.googleapis.com/auth/drive.file',MAX_ATTEMPTS=5,CHUNK=4*1024*1024;
  const el=id=>document.getElementById(id),escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let session=null,tokenClient=null,connected=false,running=false,timer=0,wake=null,controller=null,folders={},lastSync=0,statusMessage='',initialized=false,connecting=false;
- const valid=()=>connected&&session&&session.expiresAt>Date.now()+10000;
+ let session=null,tokenClient=null,connected=false,running=false,timer=0,wake=null,controller=null,folders={},lastSync=0,statusMessage='',initialized=false,connecting=false,pendingToken=null;
+ const hasToken=()=>connected&&session&&session.expiresAt>Date.now()+10000;
+ const valid=()=>hasToken()&&!!session.accountId;
  const authError=()=>Object.assign(Error('Google 연결이 만료되었습니다. 재연결해주세요.'),{auth:true});
  const pauseError=()=>Object.assign(Error('화면으로 돌아오면 이어서 처리합니다.'),{paused:true});
  const quote=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
  function keepSession(){try{if(session)sessionStorage.setItem('scene-drive-session',JSON.stringify(session));else sessionStorage.removeItem('scene-drive-session')}catch{}}
  function expire(){session=null;keepSession();statusMessage='Google 연결이 만료되었습니다. 재연결하면 대기 작업을 이어갑니다.'}
  async function api(path,options={}){
-  if(!valid())throw authError();if(document.hidden||!navigator.onLine)throw pauseError();
+  if(!hasToken())throw authError();if(document.hidden||!navigator.onLine)throw pauseError();
   const url=path.startsWith('https://')?path:API+path;
   if(!url.startsWith(API+'/')&&!url.startsWith(UPLOAD+'/'))throw Error('잘못된 Drive 요청 주소');
   controller=new AbortController();const timeout=setTimeout(()=>controller?.abort(),90000);
@@ -134,6 +135,9 @@ window.SceneDrive=(()=>{
  }
  async function acceptToken(response){
   connecting=false;if(response.error){statusMessage='Google 연결을 완료하지 못했습니다: '+response.error;await renderStatus();return}
+  pendingToken=response;
+  if(document.hidden||!navigator.onLine){statusMessage='Google 인증 완료. 앱 화면으로 돌아오면 연결을 마무리합니다.';await renderStatus();return}
+  pendingToken=null;connecting=true;
   try{
    session={accessToken:response.access_token,expiresAt:Date.now()+Number(response.expires_in||3600)*1000,clientId:window.SCENE_GOOGLE_CLIENT_ID};connected=true;
    const about=await json('/about?fields=user(permissionId,emailAddress)');session.accountId=about.user.permissionId;session.email=about.user.emailAddress;
@@ -141,7 +145,8 @@ window.SceneDrive=(()=>{
    for(const value of Object.values(folders))value.confirmed=false;
    for(const j of await SceneData.jobs())if(j.completedAccount!==session.accountId||j.state==='running')await SceneData.patchJob(j.id,x=>({...x,state:'pending',attempts:0,nextAt:0}));
    statusMessage='';schedule();
-  }catch(e){session=null;keepSession();statusMessage='Google 연결 확인 실패: '+e.message}
+  }catch(e){session=null;keepSession();if(e.paused){pendingToken=response;statusMessage='Google 인증 완료. 앱 화면으로 돌아오면 연결을 마무리합니다.'}else{connected=false;statusMessage='Google 연결 확인 실패: '+e.message}}
+  finally{connecting=false}
   await renderStatus();
  }
  function loadGoogle(){
@@ -156,11 +161,11 @@ window.SceneDrive=(()=>{
   if(session){folders=await SceneData.setting('drive-folders:'+session.accountId)||{};for(const f of Object.values(folders))f.confirmed=false}
   for(const j of await SceneData.jobs())if(j.state==='running')await SceneData.patchJob(j.id,x=>({...x,state:'pending'}));
   el('driveSyncBtn').onclick=()=>{renderStatus();el('driveDialog').showModal()};el('closeDrive').onclick=()=>el('driveDialog').close();
-  el('driveConnect').onclick=()=>{if(!tokenClient||connecting)return;connecting=true;statusMessage='Google 연결 중…';renderStatus();tokenClient.requestAccessToken({prompt:'',...(session?.email?{hint:session.email}:{})})};
-  el('driveDisconnect').onclick=async()=>{connected=false;clearTimeout(timer);controller?.abort();session=null;keepSession();await SceneData.setSetting('drive-enabled',false);statusMessage='연결을 해제했습니다. 로컬 자료와 Drive 파일은 유지됩니다.';await releaseWake();renderStatus()};
+  el('driveConnect').onclick=()=>{if(!tokenClient||connecting)return;connecting=true;statusMessage='Google 연결 중…';renderStatus();try{pendingToken=null;tokenClient.requestAccessToken({prompt:'',...(session?.email?{hint:session.email}:{})})}catch(e){connecting=false;statusMessage='Google 로그인 창을 열지 못했습니다. 다시 연결해주세요.';renderStatus()}};
+  el('driveDisconnect').onclick=async()=>{connected=false;pendingToken=null;clearTimeout(timer);controller?.abort();session=null;keepSession();await SceneData.setSetting('drive-enabled',false);statusMessage='연결을 해제했습니다. 로컬 자료와 Drive 파일은 유지됩니다.';await releaseWake();renderStatus()};
   el('driveRetry').onclick=async()=>{for(const j of await SceneData.jobs())if(j.state==='failed')await SceneData.patchJob(j.id,x=>({...x,state:'pending',attempts:0,nextAt:0,error:''}));statusMessage='';schedule();renderStatus()};
-  window.addEventListener('scene-data-change',()=>{renderStatus();schedule()});window.addEventListener('online',()=>{statusMessage='';schedule()});window.addEventListener('offline',()=>controller?.abort());
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){controller?.abort();releaseWake()}else{schedule();renderStatus()}});
+  window.addEventListener('scene-data-change',()=>{renderStatus();schedule()});window.addEventListener('online',()=>{if(pendingToken&&!connecting)acceptToken(pendingToken);else{statusMessage='';schedule()}});window.addEventListener('offline',()=>controller?.abort());
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){controller?.abort();releaseWake()}else{if(pendingToken&&!connecting)acceptToken(pendingToken);else{schedule();renderStatus()}}});
   loadGoogle();await renderStatus();schedule();
  }
  return {init,renderStatus,run};
