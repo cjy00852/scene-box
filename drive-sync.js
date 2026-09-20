@@ -5,7 +5,7 @@ window.SceneDrive=(()=>{
  const controllers=new Set(),folderRequests=new Map(),reservedNames=new Map();
  const abortRequests=()=>{for(const c of controllers)c.abort()};
  const el=id=>document.getElementById(id),escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let session=null,tokenClient=null,connected=false,running=false,timer=0,wake=null,folders={},lastSync=0,statusMessage='',initialized=false,connecting=false,pendingToken=null;
+ let session=null,tokenClient=null,connected=false,running=false,timer=0,wake=null,folders={},lastSync=0,statusMessage='',initialized=false,connecting=false,pendingToken=null,rootFailures=0;
  const hasToken=()=>connected&&session&&session.expiresAt>Date.now()+10000;
  const valid=()=>hasToken()&&!!session.accountId;
  const authError=()=>Object.assign(Error('Google 연결이 만료되었습니다. 재연결해주세요.'),{auth:true});
@@ -40,19 +40,22 @@ window.SceneDrive=(()=>{
   try{return await task}finally{if(folderRequests.get(key)===task)folderRequests.delete(key)}
  }
  async function ensureFolder(key,name,parent){
-  let state=folders[key],file=state?.confirmed?{id:state.id,name:state.name}:null;
+  let state=folders[key],file=state?.confirmed&&state.parent===parent?{id:state.id,name:state.name,parents:parent?[parent]:[]}:null;
   if(!file){
-   if(state?.id)file=await getFile(state.id);
+   if(state?.id){file=await getFile(state.id);if(!file&&(state.created||state.confirmed)){state=null;delete folders[key]}}
+   if(file?.trashed){await json('/files/'+file.id+'?fields=id',metadata('PATCH',{trashed:false}));file.trashed=false}
    if(!file){const found=await list(`trashed = false and mimeType = 'application/vnd.google-apps.folder' and appProperties has { key='sceneBoxFolder' and value='${quote(key)}' }${parent?` and '${quote(parent)}' in parents`:''}`);file=found[0]}
-   if(!file){const id=state?.id||await newId();folders[key]={id,name,confirmed:false};await persistFolders();try{file=await json('/files?fields=id,name',metadata('POST',{id,name,mimeType:'application/vnd.google-apps.folder',...(parent?{parents:[parent]}:{}),appProperties:{sceneBoxFolder:key}}))}catch(e){if(e.status===409)file=await getFile(id);else throw e}}
+   if(!file){const id=state?.id||await newId();folders[key]={id,name,confirmed:false};await persistFolders();try{file=await json('/files?fields=id,name,parents',metadata('POST',{id,name,mimeType:'application/vnd.google-apps.folder',...(parent?{parents:[parent]}:{}),appProperties:{sceneBoxFolder:key}}))}catch(e){if(e.status===409)file=await getFile(id);else throw e}}
   }
   if(!file||file.trashed)throw Error('Drive 폴더가 휴지통에 있습니다. 복원 후 다시 시도해주세요.');
   if(file.name!==name)await json('/files/'+file.id+'?fields=id,name',metadata('PATCH',{name}));
-  folders[key]={id:file.id,name,confirmed:true};await persistFolders();return file.id;
+  if(parent&&!file.parents?.includes(parent)){const params=new URLSearchParams({fields:'id',addParents:parent});if(file.parents?.length)params.set('removeParents',file.parents.join(','));await json('/files/'+file.id+'?'+params,metadata('PATCH',{}))}
+  folders[key]={id:file.id,name,parent,created:true,confirmed:true};await persistFolders();return file.id;
  }
  async function baseFolders(){const root=await folder('root','SCENE BOX');for(const name of SceneDriveRules.order)await folder('member:'+name,name,root);await folder('group','단체',root);await folder('multi','2인 이상',root);await folder('other','기타',root);return root}
  async function remotePatch(id,values){if(!session||!connected)throw pauseError();const account=session.accountId;await SceneData.patchJob(id,j=>({...j,remotes:{...j.remotes,[account]:{...j.remotes?.[account],...values}}}))}
  async function chooseName(x,remote,parent,capturedAt,firstSyncAt){
+  if(x.driveName)return String(x.driveName).replace(/[\\/:*?"<>|\u0000-\u001f]/g,'_');
   const {prefix,ext}=SceneDriveRules.nameParts(x,SceneCategories.all(),capturedAt,firstSyncAt);
   if(remote.name&&remote.nameKey===prefix+'.'+ext&&remote.parent===parent)return remote.name;
   const files=await list(`trashed = false and '${quote(parent)}' in parents`,'id,name');const names=new Set(files.filter(f=>f.id!==remote.fileId).map(f=>f.name));
@@ -92,6 +95,7 @@ window.SceneDrive=(()=>{
   let file=remote.fileId?await getFile(remote.fileId):null;
   if(file?.trashed)throw Error('Drive 파일이 휴지통에 있습니다. 자동 재생성하지 않습니다. 복원 후 재시도해주세요.');
   if(!file&&!remote.fileId){const found=await list(`trashed = false and appProperties has { key='sceneBoxId' and value='${quote(x.id)}' }`);file=found[0];if(file){remote={...remote,fileId:file.id,uploadedVersion:file.appProperties?.sceneBoxContent};await remotePatch(job.id,remote)}}
+  if(!file&&remote.fileId&&remote.uploadedVersion){remote={};await remotePatch(job.id,{fileId:null,uploadedVersion:null,uploadUrl:null})}
   if(!remote.fileId){remote.fileId=await newId();await remotePatch(job.id,{fileId:remote.fileId})}
   const capturedAt=x.capturedAt||await SceneDriveRules.captureDate(x.blob);
   const name=await chooseName(x,remote,parent,capturedAt,firstSyncAt),parts=SceneDriveRules.nameParts(x,SceneCategories.all(),capturedAt,firstSyncAt);
@@ -109,16 +113,21 @@ window.SceneDrive=(()=>{
   if(!initialized)return;const jobs=await SceneData.jobs(),files=jobs.filter(j=>j.kind==='file');
   const counts={pending:0,running:0,success:0,failed:0};for(const j of files)counts[j.state in counts?j.state:'pending']++;
   el('driveCounts').textContent=`대기 ${counts.pending} · 진행 중 ${counts.running} · 성공 ${counts.success} · 실패 ${counts.failed}`;
+  const byId=new Map(items.map(x=>[x.id,x]));const display=[...files.filter(j=>j.state==='running'),...files.filter(j=>j.state==='success').sort((a,b)=>(b.completedAt||0)-(a.completedAt||0)).slice(0,20)];
+  el('driveUploadList').innerHTML=display.length?display.map(j=>'<li>'+escape(byId.get(j.id)?.originalName||byId.get(j.id)?.name||j.id)+' · '+(j.state==='running'?'업로드 중':'완료')+'</li>').join(''):'<li>진행 중인 업로드가 없습니다.</li>';
   el('driveLastSync').textContent='마지막 동기화: '+(lastSync?new Date(lastSync).toLocaleString('ko-KR'):'아직 없음');
   el('driveStatus').textContent=statusMessage||(!window.SCENE_GOOGLE_CLIENT_ID?'Google 클라이언트 ID 설정이 필요합니다. GOOGLE_DRIVE_SETUP.md를 확인해주세요.':valid()?`연결됨 · ${session.email||'Google Drive'}`:connected?'Google 재연결이 필요합니다. 대기열은 보존됩니다.':'Google Drive를 연결하면 자동 업로드를 시작합니다.');
   el('driveConnect').disabled=!tokenClient||connecting||running||valid();el('driveConnect').textContent=valid()?'Google Drive 연결됨':'Google Drive 연결 / 재연결';
   el('driveDisconnect').disabled=!connected&&!session;
   el('driveFailures').innerHTML=jobs.filter(j=>j.state==='failed').map(j=>`<li>${escape(j.kind==='category'?'분류 폴더':items.find(x=>x.id===j.id)?.name||j.id)}: ${escape(j.error||'오류')}</li>`).join('');
  }
- function schedule(delay=200){clearTimeout(timer);if(initialized&&!running&&valid()&&!document.hidden&&navigator.onLine)timer=setTimeout(run,delay)}
+ function schedule(delay=200){clearTimeout(timer);if(initialized&&!running&&rootFailures<5&&valid()&&!document.hidden&&navigator.onLine)timer=setTimeout(run,delay)}
  async function processQueue(){
   let rootPromise=null;
+  if(folders.root){const root=await getFile(folders.root.id);if(!root||root.trashed){for(const f of Object.values(folders)){f.confirmed=false;f.created=true}if(!root){delete folders.root;await persistFolders()}await baseFolders();for(const j of await SceneData.jobs())await SceneData.patchJob(j.id,x=>({...x,state:'pending',attempts:0,nextAt:0,error:''}))}}
+
   for(const job of await SceneData.jobs()){const r=job.remotes?.[session?.accountId];if(r?.parent&&r.name){if(!reservedNames.has(r.parent))reservedNames.set(r.parent,new Map());reservedNames.get(r.parent).set(r.name,job.id)}}
+  rootFailures=0;
   async function processJob(job){
    await SceneData.patchJob(job.id,j=>({...j,state:'running'}));
    try{
@@ -144,8 +153,8 @@ window.SceneDrive=(()=>{
  async function run(){
   if(running||!valid()||document.hidden||!navigator.onLine)return;running=true;
   try{if(navigator.locks)await navigator.locks.request('scene-box-drive-upload',{ifAvailable:true},async lock=>{if(lock)await processQueue()});else await processQueue()}
-  catch(e){statusMessage=e.message}
-  finally{running=false;reservedNames.clear();await releaseWake();await renderStatus();const jobs=await SceneData.jobs(),waiting=jobs.filter(j=>j.state==='pending');if(waiting.length&&valid())schedule(Math.max(1000,Math.min(...waiting.map(j=>j.nextAt||0))-Date.now()))}
+  catch(e){if(e.auth)expire();else if(!e.paused){rootFailures++;statusMessage='Drive 폴더 확인 실패: '+e.message+(rootFailures>=5?' · 실패 항목 재시도를 눌러주세요.':'')}}
+  finally{running=false;reservedNames.clear();await releaseWake();await renderStatus();const jobs=await SceneData.jobs(),waiting=jobs.filter(j=>j.state==='pending');if(waiting.length&&valid()&&rootFailures<5)schedule(Math.max(rootFailures?5000*2**rootFailures:1000,Math.min(...waiting.map(j=>j.nextAt||0))-Date.now()))}
  }
  async function acceptToken(response){
   connecting=false;if(response.error){statusMessage='Google 연결을 완료하지 못했습니다: '+response.error;await renderStatus();return}
@@ -177,7 +186,8 @@ window.SceneDrive=(()=>{
   el('driveSyncBtn').onclick=()=>{renderStatus();el('driveDialog').showModal()};el('closeDrive').onclick=()=>el('driveDialog').close();
   el('driveConnect').onclick=()=>{if(!tokenClient||connecting)return;connecting=true;statusMessage='Google 연결 중…';renderStatus();try{pendingToken=null;tokenClient.requestAccessToken({prompt:'',...(session?.email?{hint:session.email}:{})})}catch(e){connecting=false;statusMessage='Google 로그인 창을 열지 못했습니다. 다시 연결해주세요.';renderStatus()}};
   el('driveDisconnect').onclick=async()=>{connected=false;pendingToken=null;clearTimeout(timer);abortRequests();session=null;keepSession();await SceneData.setSetting('drive-enabled',false);statusMessage='연결을 해제했습니다. 로컬 자료와 Drive 파일은 유지됩니다.';await releaseWake();renderStatus()};
-  el('driveRetry').onclick=async()=>{for(const j of await SceneData.jobs())if(j.state==='failed')await SceneData.patchJob(j.id,x=>({...x,state:'pending',attempts:0,nextAt:0,error:''}));statusMessage='';schedule();renderStatus()};
+  el('driveRetry').onclick=async()=>{rootFailures=0;for(const j of await SceneData.jobs())if(j.state==='failed')await SceneData.patchJob(j.id,x=>({...x,state:'pending',attempts:0,nextAt:0,error:''}));statusMessage='';schedule();renderStatus()};
+  setInterval(()=>{if(valid()&&!running&&rootFailures<5&&!document.hidden&&navigator.onLine)schedule()},60000);
   window.addEventListener('scene-data-change',()=>{renderStatus();schedule()});window.addEventListener('online',()=>{if(pendingToken&&!connecting)acceptToken(pendingToken);else{statusMessage='';schedule()}});window.addEventListener('offline',()=>abortRequests());
   document.addEventListener('visibilitychange',()=>{if(document.hidden){abortRequests();releaseWake()}else{if(pendingToken&&!connecting)acceptToken(pendingToken);else{schedule();renderStatus()}}});
   loadGoogle();await renderStatus();schedule();

@@ -107,6 +107,15 @@ async function main(){
  await page.evaluate(async()=>{const x=items[0];x.categoryIds=[];x.members=['제나','원이'];await put(x);await load()});
  await waitUntil(()=>page.evaluate(async()=>(await SceneData.jobs()).find(j=>j.id==='legacy').state==='success'));assert.equal(uploadCalls,1);assert.equal([...files.values()].filter(f=>f.appProperties?.sceneBoxId==='legacy').length,1);assert.equal(files.get(originalId).parents[0],[...files.values()].find(f=>f.name==='원이+제나').id);
  console.log('PASS queued original upload, stable Drive ID, metadata-only folder move');
+ await page.evaluate(async()=>{const x=await SceneData.photo('legacy');x.driveName='260920_TMA_원이+제나_001.jpg';x.name='260920_TMA_원이+제나_001';x.originalName=x.driveName;await put(x);await load()});
+ await waitUntil(()=>page.evaluate(async()=>(await SceneData.jobs()).find(j=>j.id==='legacy').state==='success'));
+ assert.equal(files.get(originalId).name,'260920_TMA_원이+제나_001.jpg');assert.equal(uploadCalls,1);assert.match(await page.locator('#driveUploadList').innerText(),/TMA/);
+ const rootFile=[...files.values()].find(f=>f.appProperties?.sceneBoxFolder==='root');rootFile.trashed=true;
+ await page.evaluate(()=>SceneDrive.run());assert.equal(rootFile.trashed,false);assert.equal(files.get(originalId).id,originalId);
+ files.delete(rootFile.id);await page.evaluate(()=>SceneDrive.run());
+ const newRoot=[...files.values()].find(f=>f.appProperties?.sceneBoxFolder==='root');assert.ok(newRoot);assert.notEqual(newRoot.id,rootFile.id);assert.equal(files.get(originalId).id,originalId);assert.equal(uploadCalls,1);
+ console.log('PASS same Drive filename without reupload, upload list, trashed-root recovery and deleted-root recreation');
+
  await page.click('#closeDrive');await page.locator('.header-menu summary').nth(1).click();await page.click('#categoryManagerBtn');
  await page.fill('#categoryName','Drive 폴더 테스트');await page.click('#addCategory');
  await waitUntil(()=>Promise.resolve([...files.values()].some(f=>f.name==='Drive 폴더 테스트')));
@@ -115,7 +124,8 @@ async function main(){
  promptValue='Drive 이름 변경';await page.locator(`[data-category-id="${driveCategoryId}"] [data-action="rename"]`).click();
  await waitUntil(()=>Promise.resolve(files.get(folderBefore.id)?.name==='Drive 이름 변경'));
  await page.click('#closeCategories');
- await page.evaluate(async()=>{const x=await SceneData.photo('legacy');await put({...x,id:'collision',contentVersion:undefined});await load()});
+ files.set('occupied-test',{id:'occupied-test',name:'등록일260920_일반_원이+제나_001.jpg',parents:[files.get(originalId).parents[0]],trashed:false});
+ await page.evaluate(async()=>{const x=await SceneData.photo('legacy');await put({...x,id:'collision',driveName:undefined,contentVersion:undefined});await load()});
  await waitUntil(()=>page.evaluate(async()=>(await SceneData.jobs()).find(j=>j.id==='collision')?.state==='success'));
  assert.match([...files.values()].find(f=>f.appProperties?.sceneBoxId==='collision').name,/_002\.jpg$/);
  console.log('PASS empty category folder creation, same-ID rename, filename collision');
@@ -145,6 +155,10 @@ async function main(){
  alwaysFail=false;await page.click('#driveRetry');await waitUntil(()=>page.evaluate(async()=>(await SceneData.jobs()).find(j=>j.id==='bounded').state==='success'));
  console.log('PASS bounded automatic retry and explicit failed-job retry');
  const before=files.size;await page.evaluate(async()=>{await del('retry');await load()});assert.equal(files.size,before);
+ files.clear();await page.evaluate(()=>SceneDrive.run());
+ assert.equal([...files.values()].filter(f=>f.appProperties?.sceneBoxId).length,await page.evaluate(()=>items.length));
+ assert.ok([...files.values()].some(f=>f.appProperties?.sceneBoxFolder==='root'));
+ console.log('PASS permanently deleted entire Drive tree rebuilt from local originals');
  await page.waitForFunction(()=>window.wakeReleases>=window.wakeRequests);
  await page.click('#driveDisconnect');await page.click('#closeDrive');await page.setViewportSize({width:320,height:800});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
  assert.deepEqual(errors,[]);console.log('PASS auth expiry pause/manual reconnect, Wake Lock release, local-only delete, mobile layout');

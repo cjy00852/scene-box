@@ -56,7 +56,7 @@ async function main(){
  acceptConfirm=false;await page.click('#saveRename');assert.deepEqual(await snapshot(),after);acceptConfirm=true;
  await page.click('#saveRename');await page.waitForFunction(()=>items.every(x=>x.name.startsWith('팬사인회_')));
  const renamed=await snapshot();assert.deepEqual(renamed.map(x=>x.name).sort(),['팬사인회_007','팬사인회_008','팬사인회_009']);
- const exceptName=x=>{const c={...x};delete c.name;delete c.originalName;delete c.syncRevision;return c};assert.deepEqual(renamed.map(exceptName),after.map(exceptName));assert.ok(renamed.every(x=>x.originalName===x.name+(x.id==='local-1'?'.mp4':'.jpg')));after=renamed;
+ const exceptName=x=>{const c={...x};delete c.name;delete c.originalName;delete c.driveName;delete c.syncRevision;return c};assert.deepEqual(renamed.map(exceptName),after.map(exceptName));assert.ok(renamed.every(x=>x.originalName===x.name+(x.id==='local-1'?'.mp4':'.jpg')));after=renamed;
  await page.click('#clearSelect');assert.equal(await page.locator('#bulkBar').isVisible(),false);
  await page.reload();await page.waitForFunction(()=>typeof items!=='undefined'&&items.length===3);assert.deepEqual(await snapshot(),after);
  await page.locator('.card[data-id="local-0"] .photo-open').click();assert.equal(await page.locator('#lightboxDialog').isVisible(),true);await page.keyboard.press('Escape');
@@ -71,16 +71,16 @@ async function main(){
  await page.evaluate(()=>openEdit('local-0'));assert.equal(await page.locator('#editCategories option[value="category-other"]').count(),0);
  await page.click('#saveEdit');await page.waitForFunction(()=>!editDialog.open);assert.equal(await page.evaluate(()=>items.find(x=>x.id==='local-0').categoryIds.includes('category-other')),true);
 
- await page.evaluate(async()=>{await put({id:'already-named',name:'260921-최종행사-원이-001',originalName:'260921-최종행사-원이-001.jpg',date:'2026-09-21',categoryIds:['category-other'],members:['원이'],blob:new Blob(['keep'],{type:'image/jpeg'}),tags:[],addedAt:0});await load();search.value='media';render()});
- const ruleChecks=await page.evaluate(()=>buildAutoNamePlan([{id:'old-rule',name:'260919_버블_메이_001',originalName:'260919_버블_메이_001.jpg',date:'2026-09-19',activity:'TMA',members:['메이']},{id:'no-event',name:'260919-행사미지정-원이-001',date:'2026-09-19',members:['원이'],originalName:'a.mp4'}]));assert.equal(ruleChecks.find(x=>x.id==='old-rule').originalName,'260919-TMA-메이-001.jpg');assert.equal(ruleChecks.find(x=>x.id==='no-event').originalName,'260919-일반-원이-001.mp4');
+ await page.evaluate(async()=>{await put({id:'already-named',driveName:'260921_최종행사_원이_001.jpg',name:'260921_최종행사_원이_001',originalName:'260921_최종행사_원이_001.jpg',date:'2026-09-21',activity:'최종 행사',categoryIds:['category-other'],members:['원이'],blob:new Blob(['keep'],{type:'image/jpeg'}),tags:[],addedAt:0});await load();search.value='media';render()});
+ const ruleChecks=await page.evaluate(()=>buildAutoNamePlan([{id:'old-rule',name:'260919_버블_메이_001',originalName:'260919_버블_메이_001.jpg',date:'2026-09-19',activity:'TMA',members:['메이']},{id:'no-event',name:'260919-행사미지정-원이-001',date:'2026-09-19',members:['원이'],originalName:'a.mp4'}]));assert.equal(ruleChecks.find(x=>x.id==='old-rule').originalName,'260919_TMA_메이_001.jpg');assert.equal(ruleChecks.find(x=>x.id==='no-event').originalName,'260919_일반_원이_001.mp4');
  const beforeAuto=await snapshot();
  await page.locator('.header-menu summary').nth(1).click();await page.click('#autoNameBtn');
- assert.match(await page.locator('#autoNameCount').innerText(),/변경 3개/);assert.match(await page.locator('#autoNamePreview').innerText(),/260921-최종행사-원이-002/);
+ assert.match(await page.locator('#autoNameCount').innerText(),/변경 3개/);assert.match(await page.locator('#autoNamePreview').innerText(),/260921_최종행사_원이_002/);
  acceptConfirm=false;await page.click('#saveAutoName');assert.deepEqual(await snapshot(),beforeAuto);acceptConfirm=true;
  await page.click('#saveAutoName');await page.waitForFunction(()=>!autoNameDialog.open);
  const afterAuto=await snapshot();assert.deepEqual(afterAuto.find(x=>x.id==='already-named'),beforeAuto.find(x=>x.id==='already-named'));
  assert.deepEqual(afterAuto.map(exceptName),beforeAuto.map(exceptName));assert.equal(new Set(afterAuto.map(x=>x.originalName)).size,4);
- assert.ok(afterAuto.every(x=>/^260921-최종행사-원이-00[1-4]$/.test(x.name)));
+ assert.ok(afterAuto.every(x=>/^260921_최종행사_원이_00[1-4]$/.test(x.name)));
  await page.reload();await page.waitForFunction(()=>typeof items!=='undefined'&&items.length===4);assert.deepEqual(await snapshot(),afterAuto);
  await page.locator('.header-menu summary').nth(1).click();await page.click('#autoNameBtn');assert.equal(await page.locator('#saveAutoName').isDisabled(),true);await page.click('#cancelAutoName');
  console.log('PASS whole-library auto names ignore filters, reserve existing numbers, preserve originals, skip organized names and persist after reload');
