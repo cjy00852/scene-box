@@ -169,6 +169,7 @@ body[data-photo-columns] .grid{grid-template-columns:repeat(var(--photo-columns,
 #memberChips .chip{font-size:11px;padding:5px 8px}#memberChips .chip-count{min-width:15px;height:15px;padding:0 4px;margin-left:2px;font-size:8px}#memberChips .filter-chips{gap:5px}#memberChips .filter-group>b{font-size:9px;margin-bottom:5px}#memberChips .filter-group+.filter-group{margin-top:9px;padding-top:9px}#memberChips .category-add{width:23px;height:23px;font-size:15px;padding:0}#stats{gap:7px;margin:5px 0 10px}#stats .stat{font-size:11px;padding:6px 8px;border-radius:9px}
 .controls .field{padding-top:6px;padding-bottom:6px}.controls #sort,.controls #shuffleBtn{min-height:32px;padding-top:5px;padding-bottom:5px}@media(max-width:760px){.controls .field{padding-top:5px;padding-bottom:5px}}
 .header-brand{min-width:0}@media(max-width:620px){.top{display:grid;grid-template-columns:minmax(0,1fr) 64px auto;gap:8px;padding-top:11px}.top>.header-actions{grid-column:1/-1}.storage-usage{font-size:10px;line-height:1.4;text-align:center;word-break:keep-all}.quick-help{gap:4px}.quick-help .btn{font-size:11px;padding:9px 7px;white-space:nowrap}.header-brand .logo{font-size:17px}.header-brand .subtitle{font-size:9px}}
+.header-brand{display:flex;align-items:center;gap:7px}.header-photo-logo{width:36px;height:36px;flex:0 0 auto;object-fit:cover;object-position:center 38%;border-radius:50%;border:1px solid var(--line)}.header-brand-text{min-width:0}.header-brand .logo{white-space:nowrap}.header-brand .subtitle{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}@media(max-width:620px){.header-photo-logo{width:28px;height:28px}.header-brand{gap:5px}}@media(max-width:380px){.top{grid-template-columns:minmax(0,1fr) 54px auto;gap:5px}.header-brand .logo{font-size:12px}.quick-help .btn{font-size:10px;padding:9px 5px}}
 </style>
 </head>
 <body>
@@ -176,7 +177,7 @@ body[data-photo-columns] .grid{grid-template-columns:repeat(var(--photo-columns,
 <header>
  <div class="top">
 
-  <div class="header-brand"><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE · v2</div></div>
+  <div class="header-brand"><img class="header-photo-logo" src="header-logo.jpg" alt="" width="36" height="36"><div class="header-brand-text"><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE · v2</div></div></div>
   <output id="storageUsage" class="storage-usage" aria-live="polite">저장 용량 계산 중…</output>
   <div class="quick-help"><button class="btn primary" id="autoNameBtn">이름 바꾸기</button><button class="btn" id="tutorialBtn">사용법</button></div><nav class="header-actions" aria-label="앱 메뉴">
    <button class="btn" id="homeBtn" title="전체 화면으로 돌아가기">⌂ 홈</button>
