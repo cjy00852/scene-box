@@ -56,7 +56,7 @@ async function main(){
  acceptConfirm=false;await page.click('#saveRename');assert.deepEqual(await snapshot(),after);acceptConfirm=true;
  await page.click('#saveRename');await page.waitForFunction(()=>items.every(x=>x.name.startsWith('팬사인회_')));
  const renamed=await snapshot();assert.deepEqual(renamed.map(x=>x.name).sort(),['팬사인회_007','팬사인회_008','팬사인회_009']);
- const exceptName=x=>{const c={...x};delete c.name;delete c.syncRevision;return c};assert.deepEqual(renamed.map(exceptName),after.map(exceptName));after=renamed;
+ const exceptName=x=>{const c={...x};delete c.name;delete c.originalName;delete c.syncRevision;return c};assert.deepEqual(renamed.map(exceptName),after.map(exceptName));assert.ok(renamed.every(x=>x.originalName===x.name+(x.id==='local-1'?'.mp4':'.jpg')));after=renamed;
  await page.click('#cancelSelection');assert.equal(await page.locator('#selectionActions').isVisible(),false);
  await page.reload();await page.waitForFunction(()=>typeof items!=='undefined'&&items.length===3);assert.deepEqual(await snapshot(),after);
  await page.locator('.card[data-id="local-0"] .photo-open').click();assert.equal(await page.locator('#lightboxDialog').isVisible(),true);await page.keyboard.press('Escape');

@@ -1,4 +1,4 @@
-const CACHE="scene-box-v34";
+const CACHE="scene-box-v35";
 const APP=["./google-config.js","./scene-data.js","./scene-categories.js?v=28","./drive-rules.js","./drive-sync.js","./","./index.html","./manifest.webmanifest","./icon-photo-192.png","./icon-photo-512.png","./icon-photo-maskable-512.png"];
 self.addEventListener("install",e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(APP.map(url=>new Request(url,{cache:"reload"})))).then(()=>self.skipWaiting())));
 self.addEventListener("activate",e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
