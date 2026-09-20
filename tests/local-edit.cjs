@@ -24,6 +24,8 @@ async function main(){
  promptValue='팬사인회';await page.click('.category-add');await page.waitForFunction(()=>SceneCategories.all().some(c=>c.name==='팬사인회'));
  for(const id of ['importCategories','editCategories','bulkCategories'])assert.equal(await page.locator('#'+id+' option[value="category-other"]').count(),0);
  assert.equal(await page.locator('#bulkMemberButtons [data-bulk-member="기타"]').count(),1);
+ for(const id of ['importCategories','editCategories']){assert.equal(await page.locator('#'+id).getAttribute('size'),'1');assert.equal(await page.locator('#'+id).evaluate(e=>getComputedStyle(e).height),'44px');}
+ await page.selectOption('#importCategories',['legacy-bubble','legacy-membership'],{force:true});assert.deepEqual(await page.evaluate(()=>SceneCategories.read('importCategories')),['legacy-bubble','legacy-membership']);
  const cat=await page.evaluate(()=>SceneCategories.all().find(c=>c.name==='팬사인회').id);
  assert.equal(await page.locator('[data-m="category:'+cat+'"]').count(),1);
  await page.click('[data-m="category:'+cat+'"]');assert.equal(await page.evaluate(id=>memberFilters.has('category:'+id),cat),true);await page.click('#homeBtn');
