@@ -198,7 +198,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
   </div>
  </section>
 
- <div class="gallery-toolbar"><button class="btn" id="selectionModeBtn" aria-pressed="false">복수 선택</button>  <select class="field" id="sort" aria-label="사진 정렬">
+ <div class="gallery-toolbar">  <select class="field" id="sort" aria-label="사진 정렬">
    <option value="new">최근 추가순</option><option value="old">오래된순</option>
    <option value="dateDesc">촬영일 최신순</option><option value="name">이름순</option><option value="random" hidden>랜덤 보기</option>
   </select><button class="btn primary" id="shuffleBtn" aria-pressed="false">⤨ 사진 랜덤</button></div>
@@ -219,7 +219,6 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
  </div>
 
  <div class="members" id="memberChips"></div>
- <div class="selection-actions" id="selectionActions" hidden><b id="selectionStatus" aria-live="polite">0개 선택</b><button class="btn" id="selectAllMedia">전체 선택</button><button class="btn" id="deselectMedia">선택 해제</button><button class="btn primary" id="openBulkEdit" disabled>일괄 수정</button><button class="btn" id="cancelSelection">취소</button><span class="hint">전체 선택은 현재 검색·분류 결과의 모든 페이지에 적용됩니다.</span></div>
  <div class="stats" id="stats"></div>
  <div id="gallery"></div>
  <div id="pagination"></div>
@@ -766,10 +765,6 @@ function render(){
 function updateBulk(){
  document.querySelector("#selectedCount").textContent=`${selected.size}장 선택`;
  document.querySelector("#bulkBar").classList.toggle("show",selected.size>0);
- document.querySelector("#selectionActions").hidden=!(selectionMode||selected.size);
- document.querySelector("#selectionStatus").textContent=`${selected.size}개 선택`;
- document.querySelector("#openBulkEdit").disabled=!selected.size;
- document.querySelector("#selectionModeBtn").setAttribute("aria-pressed",String(selectionMode||selected.size>0));
  document.body.classList.toggle("selection-mode",selectionMode||selected.size>0);
 }
 
@@ -854,10 +849,6 @@ function toggleCardSelection(id){
  selected.has(id)?selected.delete(id):selected.add(id);
  syncCardSelection();
 }
-document.querySelector('#selectionModeBtn').onclick=()=>{selectionMode=true;updateBulk()};
-document.querySelector('#selectAllMedia').onclick=()=>{selectionMode=true;for(const x of filtered())selected.add(x.id);syncCardSelection()};
-document.querySelector('#deselectMedia').onclick=()=>{selected.clear();syncCardSelection()};
-document.querySelector('#cancelSelection').onclick=()=>document.querySelector('#clearSelect').click();
 let autoNamePlan=[];
 function buildAutoNamePlan(rows){
  const structured=/^(?:등록일)?\d{6}_.+_(?:원이|리브|미나미|메이|제나|단체|기타)(?:\+(?:원이|리브|미나미|메이|제나))*_\d{3,}(?:\.[a-zA-Z0-9]{1,10})?$/;
@@ -911,7 +902,6 @@ function openBulkDateEdit(){
  document.querySelector('#bulkActivityOptions').innerHTML=[...new Set(items.map(x=>x.activity).filter(Boolean))].map(v=>`<option value="${esc(v)}"></option>`).join('');
  document.querySelector('#bulkEditDialog').showModal();
 }
-document.querySelector('#openBulkEdit').onclick=openBulkDateEdit;
 document.querySelector('#bulkEditShortcut').onclick=openBulkDateEdit;
 document.querySelector('#cancelBulkEdit').onclick=()=>document.querySelector('#bulkEditDialog').close();
 document.querySelector('#saveBulkEdit').onclick=async()=>{
