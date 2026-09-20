@@ -159,6 +159,8 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
 .top{position:relative;padding-top:38px}.storage-usage{position:absolute;right:18px;top:8px;font-size:12px;font-weight:750;color:var(--muted)}
 .category-row{display:flex;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.category-row>span{flex:1;overflow-wrap:anywhere}select[multiple]{min-height:76px}.bulk select[multiple]{max-width:150px;color:var(--ink);border-radius:8px}
 .category-add{width:34px;height:34px;padding:0;border-radius:50%;font-size:22px}.category-pair{display:inline-flex;align-items:center;gap:6px}.gallery-toolbar{flex-wrap:wrap}.selection-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}.selection-actions[hidden]{display:none}body.selection-mode .photo-open{cursor:pointer}
+.members{display:block}.filter-group+.filter-group{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.filter-group>b{display:block;margin-bottom:8px;font-size:13px}.filter-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bulk{max-height:45vh;max-height:45dvh;overflow-y:auto;overscroll-behavior:contain;align-content:flex-start}.bulk select[multiple]{height:100px;min-height:100px;overflow-y:auto}dialog{max-height:85vh;max-height:85dvh;overflow-y:auto}#categoryList{max-height:42vh;max-height:42dvh;overflow-y:auto;overscroll-behavior:contain}.category-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px}.category-row>span{grid-column:1/-1}.category-move{display:flex;gap:4px}.category-row .btn{padding:8px 10px;font-size:13px}
 </style>
 </head>
 <body>
@@ -731,10 +733,13 @@ function render(){
  if(acts.includes(prev))af.value=prev;
 
  const countBase=items.filter(passesNonMemberFilters);
+ const chipHTML=m=>`<button class="chip ${memberFilters.has(m)?"active":""}" data-m="${esc(m)}" aria-pressed="${memberFilters.has(m)}">${esc(SceneCategories.label(m))} <span class="chip-count">${memberCountFor(m,countBase)}</span></button>`;
  document.querySelector("#memberChips").innerHTML=
+  '<div class="filter-group"><b>멤버</b><div class="filter-chips">'+
   `<button class="chip ${memberFilters.size===0?"active":""}" data-m="">전체 <span class="chip-count">${countBase.length}</span></button>`+
-  MEMBER_FILTERS.map(m=>{const chip=`<button class="chip ${memberFilters.has(m)?"active":""}" data-m="${esc(m)}" aria-pressed="${memberFilters.has(m)}">${esc(SceneCategories.label(m))} <span class="chip-count">${memberCountFor(m,countBase)}</span></button>`;return m==="category:legacy-membership"?`<span class="category-pair">${chip}${categoryAddHTML()}</span>`:chip}).join("")+(MEMBER_FILTERS.includes("category:legacy-membership")?"":categoryAddHTML());
-
+  MEMBER_FILTERS.filter(m=>!m.startsWith('category:')).map(chipHTML).join('')+'</div></div>'+
+  '<div class="filter-group"><b>자료 분류</b><div class="filter-chips" id="categoryChips">'+
+  MEMBER_FILTERS.filter(m=>m.startsWith('category:')&&m!=='category:category-other').map(chipHTML).join('')+categoryAddHTML()+'</div></div>';
  const arr=filtered(), favs=items.filter(x=>x.fav).length, un=items.filter(x=>!isGroup(x)&&getMembers(x).length===0).length, gifs=items.filter(isGif).length, videos=items.filter(isVideo).length;
  const totalPages=Math.max(1,Math.ceil(arr.length/pageSize));
  if(currentPage>totalPages)currentPage=totalPages;

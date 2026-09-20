@@ -13,7 +13,8 @@ window.SceneCategories=(()=>{
   el('categoryView').innerHTML='<option value="all">모든 자료 분류</option><option value="none">사용자 분류 없음</option>'+categories.map(c=>`<option value="${escape(c.id)}">${escape(c.name)}</option><option value="exclude:${escape(c.id)}">${escape(c.name)} 제외</option>`).join('');
   if([...el('categoryView').options].some(o=>o.value===selected))el('categoryView').value=selected;
   for(const id of ['importCategories','editCategories','bulkCategories'])fill(id,read(id));
-  el('categoryList').innerHTML=categories.map(c=>`<div class="category-row" data-category-id="${escape(c.id)}"><span>${escape(c.name)}</span>${c.id==='category-other'?'<small>기본 분류</small>':'<button class="btn" data-action="rename">이름 변경</button><button class="btn danger" data-action="delete">삭제</button>'}</div>`).join('');
+  const visible=categories.filter(c=>c.id!=='category-other');
+  el('categoryList').innerHTML=visible.map((c,i)=>`<div class="category-row" data-category-id="${escape(c.id)}"><span>${escape(c.name)}</span><div class="category-move"><button class="btn" data-action="up" aria-label="${escape(c.name)} 위로" ${i===0?'disabled':''}>↑</button><button class="btn" data-action="down" aria-label="${escape(c.name)} 아래로" ${i===visible.length-1?'disabled':''}>↓</button></div><button class="btn" data-action="rename">이름 변경</button><button class="btn danger" data-action="delete">삭제</button></div>`).join('');
  }
  function label(filter){return filter.startsWith('category:')?categories.find(c=>c.id===filter.slice(9))?.name||'기타':filter}
  function validName(name,except){
@@ -34,7 +35,11 @@ window.SceneCategories=(()=>{
   el('categoryList').onclick=async e=>{
    const action=e.target.dataset.action,row=e.target.closest('[data-category-id]');if(!action||!row)return;
    const c=categories.find(c=>c.id===row.dataset.categoryId);if(!c||c.id==='category-other')return;
-   try{if(action==='rename'){const entered=prompt('새 분류 이름',c.name);if(entered===null)return;const name=validName(entered,c.id);await commit(categories.map(v=>v.id===c.id?{...v,name}:v))}
+   try{if(action==='up'||action==='down'){
+    const visible=categories.filter(v=>v.id!=='category-other'),i=visible.findIndex(v=>v.id===c.id),target=i+(action==='up'?-1:1);if(target<0||target>=visible.length)return;
+    const next=all(),from=next.findIndex(v=>v.id===c.id),to=next.findIndex(v=>v.id===visible[target].id);[next[from],next[to]]=[next[to],next[from]];
+    await SceneData.setSetting(SceneData.categoryKey,next);categories=next;refresh();render();return;
+   }if(action==='rename'){const entered=prompt('새 분류 이름',c.name);if(entered===null)return;const name=validName(entered,c.id);await commit(categories.map(v=>v.id===c.id?{...v,name}:v))}
     else if(confirm(`‘${c.name}’ 분류를 삭제할까요? 원본 사진·영상은 유지하고 이 분류를 ‘기타’로 바꿉니다. Drive 파일은 삭제하지 않습니다.`)){memberFilters.delete('category:'+c.id);await commit(categories.filter(v=>v.id!==c.id),c.id)}
    }catch(err){alert(err.message)}
   };
