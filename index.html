@@ -156,7 +156,7 @@ body[data-photo-size="small"] .card-footer .check,body[data-photo-size="tiny"] .
 body[data-photo-size="small"] .card-footer .fav,body[data-photo-size="tiny"] .card-footer .fav{grid-row:2;grid-column:2}
 body[data-photo-size="list"] .photo-open{width:92px;height:112px}
 @media(max-width:760px){body[data-photo-size="list"] .photo-open{width:78px;height:98px}}
-.top{position:relative;padding-top:38px}.storage-usage{position:absolute;right:18px;top:8px;font-size:12px;font-weight:750;color:var(--muted)}
+.top{position:relative}.storage-usage{position:static;font-size:12px;font-weight:750;color:var(--muted)}
 .category-row{display:flex;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.category-row>span{flex:1;overflow-wrap:anywhere}select[multiple]{min-height:76px}.bulk select[multiple]{max-width:150px;color:var(--ink);border-radius:8px}
 .category-add{width:34px;height:34px;padding:0;border-radius:50%;font-size:22px}.category-pair{display:inline-flex;align-items:center;gap:6px}.gallery-toolbar{flex-wrap:wrap}.selection-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}.selection-actions[hidden]{display:none}body.selection-mode .photo-open{cursor:pointer}
 .members{display:block}.filter-group+.filter-group{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.filter-group>b{display:block;margin-bottom:8px;font-size:13px}.filter-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -168,14 +168,16 @@ body[data-photo-columns] .grid{grid-template-columns:repeat(var(--photo-columns,
 .controls #sort,.controls #shuffleBtn{width:100%;min-width:0;min-height:40px;font-size:12px;padding:9px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #memberChips .chip{font-size:11px;padding:5px 8px}#memberChips .chip-count{min-width:15px;height:15px;padding:0 4px;margin-left:2px;font-size:8px}#memberChips .filter-chips{gap:5px}#memberChips .filter-group>b{font-size:9px;margin-bottom:5px}#memberChips .filter-group+.filter-group{margin-top:9px;padding-top:9px}#memberChips .category-add{width:23px;height:23px;font-size:15px;padding:0}#stats{gap:7px;margin:5px 0 10px}#stats .stat{font-size:11px;padding:6px 8px;border-radius:9px}
 .controls .field{padding-top:6px;padding-bottom:6px}.controls #sort,.controls #shuffleBtn{min-height:32px;padding-top:5px;padding-bottom:5px}@media(max-width:760px){.controls .field{padding-top:5px;padding-bottom:5px}}
+.header-brand{min-width:0}@media(max-width:620px){.top{display:grid;grid-template-columns:minmax(0,1fr) 64px auto;gap:8px;padding-top:11px}.top>.header-actions{grid-column:1/-1}.storage-usage{font-size:10px;line-height:1.4;text-align:center;word-break:keep-all}.quick-help{gap:4px}.quick-help .btn{font-size:11px;padding:9px 7px;white-space:nowrap}.header-brand .logo{font-size:17px}.header-brand .subtitle{font-size:9px}}
 </style>
 </head>
 <body>
 <div id="pageBackground" class="page-background hero" aria-hidden="true" hidden></div>
 <header>
  <div class="top">
+
+  <div class="header-brand"><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE · v2</div></div>
   <output id="storageUsage" class="storage-usage" aria-live="polite">저장 용량 계산 중…</output>
-  <div><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE · v12</div></div>
   <div class="quick-help"><button class="btn primary" id="autoNameBtn">이름 바꾸기</button><button class="btn" id="tutorialBtn">사용법</button></div><nav class="header-actions" aria-label="앱 메뉴">
    <button class="btn" id="homeBtn" title="전체 화면으로 돌아가기">⌂ 홈</button>
    <details class="header-menu"><summary class="btn">배경 설정 <span aria-hidden="true">⌄</span></summary><div class="header-menu-panel">
