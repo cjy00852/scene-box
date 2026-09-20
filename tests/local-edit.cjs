@@ -32,7 +32,10 @@ async function main(){
  const before=await snapshot();
  await page.click('#selectionModeBtn');assert.equal(await page.locator('#selectionStatus').innerText(),'0개 선택');
  await page.locator('.card[data-id="local-0"] .photo-open').click();assert.equal(await page.locator('#selectionStatus').innerText(),'1개 선택');
- await page.click('#selectAllMedia');assert.equal(await page.locator('#bulkBar').evaluate(e=>e.getBoundingClientRect().height<=innerHeight*.45+1),true);assert.equal(await page.locator('#selectionStatus').innerText(),'3개 선택');
+ await page.click('#selectAllMedia');assert.equal(await page.locator('#bulkBar').evaluate(e=>e.getBoundingClientRect().height<110&&e.scrollWidth>e.clientWidth&&getComputedStyle(e).flexWrap==='nowrap'),true);
+ await page.locator('#bulkBar').evaluate(e=>e.scrollLeft=e.scrollWidth);
+ assert.equal(await page.locator('#clearSelect').evaluate(e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth}),true);
+ await page.locator('#bulkBar').evaluate(e=>e.scrollLeft=0);assert.equal(await page.locator('#selectionStatus').innerText(),'3개 선택');
  await page.click('#deselectMedia');assert.equal(await page.locator('#selectionStatus').innerText(),'0개 선택');assert.equal(await page.locator('#openBulkEdit').isDisabled(),true);
  await page.click('#selectAllMedia');await page.click('#openBulkEdit');await page.click('#saveBulkEdit');assert.match(messages.at(-1),/입력/);
  await page.fill('#bulkEditDate','2026-09-20');acceptConfirm=false;await page.click('#saveBulkEdit');assert.deepEqual(await snapshot(),before);

@@ -160,7 +160,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
 .category-row{display:flex;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.category-row>span{flex:1;overflow-wrap:anywhere}select[multiple]{min-height:76px}.bulk select[multiple]{max-width:150px;color:var(--ink);border-radius:8px}
 .category-add{width:34px;height:34px;padding:0;border-radius:50%;font-size:22px}.category-pair{display:inline-flex;align-items:center;gap:6px}.gallery-toolbar{flex-wrap:wrap}.selection-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}.selection-actions[hidden]{display:none}body.selection-mode .photo-open{cursor:pointer}
 .members{display:block}.filter-group+.filter-group{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.filter-group>b{display:block;margin-bottom:8px;font-size:13px}.filter-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.bulk{max-height:45vh;max-height:45dvh;overflow-y:auto;overscroll-behavior:contain;align-content:flex-start}.bulk select[multiple]{height:100px;min-height:100px;overflow-y:auto}dialog{max-height:85vh;max-height:85dvh;overflow-y:auto}#categoryList{max-height:42vh;max-height:42dvh;overflow-y:auto;overscroll-behavior:contain}.category-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px}.category-row>span{grid-column:1/-1}.category-move{display:flex;gap:4px}.category-row .btn{padding:8px 10px;font-size:13px}
+.bulk{width:calc(100vw - 20px);max-width:1100px;max-height:none;flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:#bda5ff #211a30;padding:10px 12px 14px}.bulk>*{flex:0 0 auto;white-space:nowrap}.bulk>b{width:auto;text-align:left}.bulk .member-actions{flex-wrap:nowrap;justify-content:flex-start}.bulk .btn{white-space:nowrap;min-height:42px}.bulk select[multiple]{width:140px;height:64px;min-height:64px;overflow-y:auto;font-size:14px}.bulk::after{content:"";flex:0 0 4px}dialog{max-height:85vh;max-height:85dvh;overflow-y:auto}#categoryList{max-height:42vh;max-height:42dvh;overflow-y:auto;overscroll-behavior:contain}.category-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px}.category-row>span{grid-column:1/-1}.category-move{display:flex;gap:4px}.category-row .btn{padding:8px 10px;font-size:13px}
 </style>
 </head>
 <body>
@@ -223,8 +223,8 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
  <div id="pagination"></div>
 </main>
 
-<div class="bulk" id="bulkBar">
- <b id="selectedCount">0장 선택</b><button class="btn primary" id="bulkEditShortcut">날짜·행사 일괄 수정</button>
+<div class="bulk" id="bulkBar" role="region" aria-label="선택 수정 메뉴 — 좌우로 스크롤" tabindex="0">
+ <b id="selectedCount">0장 선택</b><span class="bulk-scroll-hint" style="font-size:12px;color:#d8c9f7">좌우로 밀기 ↔</span><button class="btn primary" id="bulkEditShortcut">날짜·행사 일괄 수정</button>
  <div class="member-actions" id="bulkMemberButtons" aria-label="선택 사진 멤버 분류"></div>
  <button class="btn primary" id="bulkApplyMembers">멤버 적용</button>
  <select id="bulkCategories" multiple aria-label="일괄 자료 분류"></select><button class="btn" id="bulkApplyCategories">분류 적용</button>
