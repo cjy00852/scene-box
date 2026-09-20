@@ -72,7 +72,7 @@ async function main(){
  await page.click('#saveEdit');await page.waitForFunction(()=>!editDialog.open);assert.equal(await page.evaluate(()=>items.find(x=>x.id==='local-0').categoryIds.includes('category-other')),true);
 
  await page.evaluate(async()=>{await put({id:'already-named',name:'260921-최종행사-원이-001',originalName:'260921-최종행사-원이-001.jpg',date:'2026-09-21',categoryIds:['category-other'],members:['원이'],blob:new Blob(['keep'],{type:'image/jpeg'}),tags:[],addedAt:0});await load();search.value='media';render()});
- const ruleChecks=await page.evaluate(()=>buildAutoNamePlan([{id:'old-rule',name:'260919_버블_메이_001',originalName:'260919_버블_메이_001.jpg',date:'2026-09-19',activity:'TMA',members:['메이']},{id:'no-event',date:'2026-09-19',members:['원이'],originalName:'a.mp4'}]));assert.equal(ruleChecks.find(x=>x.id==='old-rule').originalName,'260919-TMA-메이-001.jpg');assert.equal(ruleChecks.find(x=>x.id==='no-event').originalName,'260919-행사미지정-원이-001.mp4');
+ const ruleChecks=await page.evaluate(()=>buildAutoNamePlan([{id:'old-rule',name:'260919_버블_메이_001',originalName:'260919_버블_메이_001.jpg',date:'2026-09-19',activity:'TMA',members:['메이']},{id:'no-event',name:'260919-행사미지정-원이-001',date:'2026-09-19',members:['원이'],originalName:'a.mp4'}]));assert.equal(ruleChecks.find(x=>x.id==='old-rule').originalName,'260919-TMA-메이-001.jpg');assert.equal(ruleChecks.find(x=>x.id==='no-event').originalName,'260919-일반-원이-001.mp4');
  const beforeAuto=await snapshot();
  await page.locator('.header-menu summary').nth(1).click();await page.click('#autoNameBtn');
  assert.match(await page.locator('#autoNameCount').innerText(),/변경 3개/);assert.match(await page.locator('#autoNamePreview').innerText(),/260921-최종행사-원이-002/);
