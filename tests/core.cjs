@@ -90,7 +90,7 @@ async function main(){
    }
    const session=sessions.get(uploadId);if(!session)return send({},404);
    if(req.headers()['content-range']?.startsWith('bytes */'))return files.has(session.id)?send({id:session.id}):send({},308);
-   if(session.meta.appProperties?.sceneBoxId?.startsWith('parallel-')){activeUploads++;peakUploads=Math.max(peakUploads,activeUploads);await new Promise(r=>setTimeout(r,500));activeUploads--;}
+   if(session.meta.appProperties?.sceneBoxId?.startsWith('parallel-')){activeUploads++;peakUploads=Math.max(peakUploads,activeUploads);await new Promise(r=>setTimeout(r,1000));activeUploads--;}
    uploadCalls++;if(failUpload||alwaysFail){failUpload=false;return send({error:{message:'temporary upload failure'}},503)}
    files.set(session.id,{...files.get(session.id),...session.meta,id:session.id,parents:session.meta.parents||files.get(session.id)?.parents||[],trashed:false});return send({id:session.id});
   }
@@ -119,12 +119,12 @@ async function main(){
  await waitUntil(()=>page.evaluate(async()=>(await SceneData.jobs()).find(j=>j.id==='collision')?.state==='success'));
  assert.match([...files.values()].find(f=>f.appProperties?.sceneBoxId==='collision').name,/_002\.jpg$/);
  console.log('PASS empty category folder creation, same-ID rename, filename collision');
- await page.evaluate(async()=>{for(let i=0;i<20;i++)await put({id:'parallel-'+i,name:'parallel',originalName:'p.jpg',blob:new Blob(['p'+i],{type:'image/jpeg'}),members:['미나미','메이'],date:'2026-09-20',tags:[],addedAt:Date.now()});await load()});
+ await page.evaluate(async()=>{for(let i=0;i<40;i++)await put({id:'parallel-'+i,name:'parallel',originalName:'p.jpg',blob:new Blob(['p'+i],{type:'image/jpeg'}),members:['미나미','메이'],date:'2026-09-20',tags:[],addedAt:Date.now()});await load()});
  await waitUntil(()=>page.evaluate(async()=>(await SceneData.jobs()).filter(j=>j.id.startsWith('parallel-')).every(j=>j.state==='success')));
  const parallelFiles=[...files.values()].filter(f=>f.appProperties?.sceneBoxId?.startsWith('parallel-'));
- assert.equal(peakUploads,10);assert.equal(parallelFiles.length,20);assert.equal(new Set(parallelFiles.map(f=>f.name)).size,20);assert.equal(new Set(parallelFiles.map(f=>f.parents[0])).size,1);
+ assert.equal(peakUploads,20);assert.equal(parallelFiles.length,40);assert.equal(new Set(parallelFiles.map(f=>f.name)).size,40);assert.equal(new Set(parallelFiles.map(f=>f.parents[0])).size,1);
  assert.equal([...files.values()].filter(f=>f.appProperties?.sceneBoxFolder==='combo:미나미+메이').length,1);
- console.log('PASS ten concurrent uploads, twenty unique names and one shared combination folder');
+ console.log('PASS twenty concurrent uploads, forty unique names and one shared combination folder');
  failUpload=true;
  await page.evaluate(async()=>{await put({id:'retry',name:'retry',originalName:'retry.png',blob:new Blob(['abc'],{type:'image/png'}),members:['메이'],date:'2026-09-20',tags:[],addedAt:Date.now()});await load()});
  await waitUntil(()=>page.evaluate(async()=>(await SceneData.jobs()).find(j=>j.id==='retry')?.attempts===1));

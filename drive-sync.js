@@ -1,7 +1,7 @@
 /* One-way, non-destructive local -> Google Drive synchronization. */
 window.SceneDrive=(()=>{
  const API='https://www.googleapis.com/drive/v3',UPLOAD='https://www.googleapis.com/upload/drive/v3';
- const SCOPE='https://www.googleapis.com/auth/drive.file',MAX_ATTEMPTS=5,CHUNK=4*1024*1024,CONCURRENCY=10;
+ const SCOPE='https://www.googleapis.com/auth/drive.file',MAX_ATTEMPTS=5,CHUNK=4*1024*1024,CONCURRENCY=20;
  const controllers=new Set(),folderRequests=new Map(),reservedNames=new Map();
  const abortRequests=()=>{for(const c of controllers)c.abort()};
  const el=id=>document.getElementById(id),escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
