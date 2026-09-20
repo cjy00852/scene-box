@@ -158,6 +158,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
 @media(max-width:760px){body[data-photo-size="list"] .photo-open{width:78px;height:98px}}
 .top{position:relative;padding-top:38px}.storage-usage{position:absolute;right:18px;top:8px;font-size:12px;font-weight:750;color:var(--muted)}
 .category-row{display:flex;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.category-row>span{flex:1;overflow-wrap:anywhere}select[multiple]{min-height:76px}.bulk select[multiple]{max-width:150px;color:var(--ink);border-radius:8px}
+.category-add{width:34px;height:34px;padding:0;border-radius:50%;font-size:22px}.category-pair{display:inline-flex;align-items:center;gap:6px}.gallery-toolbar{flex-wrap:wrap}.selection-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}.selection-actions[hidden]{display:none}body.selection-mode .photo-open{cursor:pointer}
 </style>
 </head>
 <body>
@@ -193,7 +194,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
   </div>
  </section>
 
- <div class="gallery-toolbar">  <select class="field" id="sort" aria-label="사진 정렬">
+ <div class="gallery-toolbar"><button class="btn" id="selectionModeBtn" aria-pressed="false">복수 선택</button>  <select class="field" id="sort" aria-label="사진 정렬">
    <option value="new">최근 추가순</option><option value="old">오래된순</option>
    <option value="dateDesc">촬영일 최신순</option><option value="name">이름순</option><option value="random" hidden>랜덤 보기</option>
   </select><button class="btn primary" id="shuffleBtn" aria-pressed="false">⤨ 사진 랜덤</button></div>
@@ -214,13 +215,14 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
  </div>
 
  <div class="members" id="memberChips"></div>
+ <div class="selection-actions" id="selectionActions" hidden><b id="selectionStatus" aria-live="polite">0개 선택</b><button class="btn" id="selectAllMedia">전체 선택</button><button class="btn" id="deselectMedia">선택 해제</button><button class="btn primary" id="openBulkEdit" disabled>일괄 수정</button><button class="btn" id="cancelSelection">취소</button><span class="hint">전체 선택은 현재 검색·분류 결과의 모든 페이지에 적용됩니다.</span></div>
  <div class="stats" id="stats"></div>
  <div id="gallery"></div>
  <div id="pagination"></div>
 </main>
 
 <div class="bulk" id="bulkBar">
- <b id="selectedCount">0장 선택</b>
+ <b id="selectedCount">0장 선택</b><button class="btn primary" id="bulkEditShortcut">날짜·행사 일괄 수정</button>
  <div class="member-actions" id="bulkMemberButtons" aria-label="선택 사진 멤버 분류"></div>
  <button class="btn primary" id="bulkApplyMembers">멤버 적용</button>
  <select id="bulkCategories" multiple aria-label="일괄 자료 분류"></select><button class="btn" id="bulkApplyCategories">분류 적용</button>
@@ -231,6 +233,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
 </div>
 
 
+<dialog id="bulkEditDialog"><div class="modal"><h2>날짜·행사 일괄 수정</h2><p id="bulkEditCount"></p><p class="hint">입력한 항목만 변경합니다. 비워 둔 항목은 기존 값을 유지합니다.</p><label>날짜<input class="field" type="date" id="bulkEditDate"></label><label>행사<input class="field" id="bulkEditActivity" list="bulkActivityOptions" placeholder="행사 입력 또는 선택"></label><datalist id="bulkActivityOptions"></datalist><div class="actions"><button class="btn" id="cancelBulkEdit">취소</button><button class="btn primary" id="saveBulkEdit">변경 적용</button></div></div></dialog>
 <dialog id="driveDialog"><div class="modal"><h2>Google Drive 자동 동기화</h2><p id="driveStatus" role="status"></p><p id="driveCounts" aria-live="polite"></p><p id="driveLastSync" class="hint"></p><p class="hint">앱을 열어둔 동안 원본을 업로드합니다. 로컬에서 삭제해도 Drive 파일은 삭제하지 않습니다. 연결이 만료되면 재연결이 필요합니다.</p><ul id="driveFailures"></ul><div class="actions"><button class="btn primary" id="driveConnect">Google Drive 연결 / 재연결</button><button class="btn" id="driveDisconnect">연결 해제</button><button class="btn" id="driveRetry">실패 항목 재시도</button><button class="btn" id="closeDrive">닫기</button></div></div></dialog>
 <dialog id="categoryDialog"><div class="modal"><h2>자료 분류 관리</h2><div class="actions"><input class="field" id="categoryName" maxlength="60" placeholder="새 분류 이름"><button class="btn primary" id="addCategory">추가</button></div><div id="categoryList"></div><div class="actions"><button class="btn" id="closeCategories">닫기</button></div></div></dialog>
 <dialog id="backgroundDialog">
@@ -518,7 +521,7 @@ async function compressBackground(file){
  return c.toDataURL("image/jpeg",.82);
 }
 const DB_NAME="scene-box-db", STORE="photos";
-let db, items=[], memberFilters=new Set(), editingId=null, selected=new Set(), pendingFiles=[];
+let db, items=[], memberFilters=new Set(), editingId=null, selectionMode=false, selected=new Set(), pendingFiles=[];
 let galleryUrls=[];
 const randomRanks=new Map();
 function resetRandomOrder(){randomRanks.clear()}
@@ -718,6 +721,7 @@ function renderPagination(total){
  buttons.push(pageButtonHTML(currentPage+1,"다음 ›",false,currentPage===pages));
  box.innerHTML=`<div class="pagination-wrap"><span class="pagination-info">총 ${total.toLocaleString()}장 · ${currentPage}/${pages}페이지</span><div class="page-buttons">${buttons.join("")}</div><select id="pageSizeSelect" class="page-size-select" aria-label="한 페이지 사진 수"><option value="50" ${pageSize===50?"selected":""}>50장씩</option><option value="100" ${pageSize===100?"selected":""}>100장씩</option><option value="200" ${pageSize===200?"selected":""}>200장씩</option></select></div>`;
 }
+function categoryAddHTML(){return '<button type="button" class="btn category-add" aria-label="사용자 분류 추가" title="사용자 분류 추가">+</button>'}
 function render(){
  const randomView=document.querySelector("#sort").value==="random";
  shuffleBtn.setAttribute("aria-pressed",String(randomView));shuffleBtn.textContent=randomView?"⤨ 다시 섞기":"⤨ 사진 랜덤";
@@ -729,7 +733,7 @@ function render(){
  const countBase=items.filter(passesNonMemberFilters);
  document.querySelector("#memberChips").innerHTML=
   `<button class="chip ${memberFilters.size===0?"active":""}" data-m="">전체 <span class="chip-count">${countBase.length}</span></button>`+
-  MEMBER_FILTERS.map(m=>`<button class="chip ${memberFilters.has(m)?"active":""}" data-m="${esc(m)}" aria-pressed="${memberFilters.has(m)}">${esc(SceneCategories.label(m))} <span class="chip-count">${memberCountFor(m,countBase)}</span></button>`).join("");
+  MEMBER_FILTERS.map(m=>{const chip=`<button class="chip ${memberFilters.has(m)?"active":""}" data-m="${esc(m)}" aria-pressed="${memberFilters.has(m)}">${esc(SceneCategories.label(m))} <span class="chip-count">${memberCountFor(m,countBase)}</span></button>`;return m==="category:legacy-membership"?`<span class="category-pair">${chip}${categoryAddHTML()}</span>`:chip}).join("")+(MEMBER_FILTERS.includes("category:legacy-membership")?"":categoryAddHTML());
 
  const arr=filtered(), favs=items.filter(x=>x.fav).length, un=items.filter(x=>!isGroup(x)&&getMembers(x).length===0).length, gifs=items.filter(isGif).length, videos=items.filter(isVideo).length;
  const totalPages=Math.max(1,Math.ceil(arr.length/pageSize));
@@ -757,6 +761,11 @@ function render(){
 function updateBulk(){
  document.querySelector("#selectedCount").textContent=`${selected.size}장 선택`;
  document.querySelector("#bulkBar").classList.toggle("show",selected.size>0);
+ document.querySelector("#selectionActions").hidden=!(selectionMode||selected.size);
+ document.querySelector("#selectionStatus").textContent=`${selected.size}개 선택`;
+ document.querySelector("#openBulkEdit").disabled=!selected.size;
+ document.querySelector("#selectionModeBtn").setAttribute("aria-pressed",String(selectionMode||selected.size>0));
+ document.body.classList.toggle("selection-mode",selectionMode||selected.size>0);
 }
 
 let lightboxId=null;
@@ -836,9 +845,41 @@ function syncCardSelection(){
  updateBulk();
 }
 function toggleCardSelection(id){
+ selectionMode=true;
  selected.has(id)?selected.delete(id):selected.add(id);
  syncCardSelection();
 }
+document.querySelector('#selectionModeBtn').onclick=()=>{selectionMode=true;updateBulk()};
+document.querySelector('#selectAllMedia').onclick=()=>{selectionMode=true;for(const x of filtered())selected.add(x.id);syncCardSelection()};
+document.querySelector('#deselectMedia').onclick=()=>{selected.clear();syncCardSelection()};
+document.querySelector('#cancelSelection').onclick=()=>document.querySelector('#clearSelect').click();
+let bulkEditIds=[];
+function openBulkDateEdit(){
+ bulkEditIds=items.filter(x=>selected.has(x.id)).map(x=>x.id);if(!bulkEditIds.length)return;
+ document.querySelector('#bulkEditDate').value='';document.querySelector('#bulkEditActivity').value='';
+ document.querySelector('#bulkEditCount').textContent=`선택한 ${bulkEditIds.length}개`;
+ document.querySelector('#bulkActivityOptions').innerHTML=[...new Set(items.map(x=>x.activity).filter(Boolean))].map(v=>`<option value="${esc(v)}"></option>`).join('');
+ document.querySelector('#bulkEditDialog').showModal();
+}
+document.querySelector('#openBulkEdit').onclick=openBulkDateEdit;
+document.querySelector('#bulkEditShortcut').onclick=openBulkDateEdit;
+document.querySelector('#cancelBulkEdit').onclick=()=>document.querySelector('#bulkEditDialog').close();
+document.querySelector('#saveBulkEdit').onclick=async()=>{
+ const button=document.querySelector('#saveBulkEdit');if(button.disabled)return;
+ const date=document.querySelector('#bulkEditDate').value,activity=document.querySelector('#bulkEditActivity').value.trim();
+ if(!date&&!activity)return alert('변경할 날짜 또는 행사를 입력해주세요.');
+ const fields=date&&activity?'날짜/행사':date?'날짜':'행사';
+ if(!confirm(`선택한 ${bulkEditIds.length}개의 ${fields}를 변경하시겠습니까?`))return;
+ button.disabled=true;let changed=0;
+ try{
+  for(const id of bulkEditIds){
+   const x=await SceneData.photo(id);if(!x)continue;
+   if(date)x.date=date;if(activity)x.activity=activity;
+   await put(x);changed++;
+  }
+  document.querySelector('#bulkEditDialog').close();await load();alert(`${changed}개의 ${fields}를 변경했습니다.`);
+ }catch(e){await load();alert(`${changed}개 변경 후 저장을 완료하지 못했습니다: ${e.message}`)}finally{button.disabled=false}
+};
 let suppressCardClickUntil=0;
 let longPressTimer=null,longPressCard=null,longPressStartX=0,longPressStartY=0;
 document.addEventListener("pointerdown",e=>{
@@ -855,6 +896,7 @@ document.addEventListener("pointermove",e=>{if(longPressTimer&&Math.hypot(e.clie
 ["pointerup","pointercancel"].forEach(ev=>document.addEventListener(ev,()=>{if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null}longPressCard=null}));
 
 document.body.addEventListener("click",async e=>{
+ if(e.target.closest(".category-add")){await SceneCategories.quickAdd();return}
  const chip=e.target.closest(".chip"); if(chip){
   const m=chip.dataset.m;
   if(!m)memberFilters.clear();
@@ -865,7 +907,7 @@ document.body.addEventListener("click",async e=>{
  const card=e.target.closest(".card"); if(!card)return;
  const id=card.dataset.id, x=items.find(v=>v.id===id);
  if(Date.now()<suppressCardClickUntil){e.preventDefault();return}
- if(selected.size>0){e.preventDefault();toggleCardSelection(id);return}
+ if(selectionMode||selected.size>0){if(!e.target.matches(".check"))e.preventDefault();toggleCardSelection(id);return}
  if(e.target.closest(".fav")){x.fav=!x.fav;await put(x);await load();return}
  if(e.target.matches(".check")){e.target.checked?selected.add(id):selected.delete(id);syncCardSelection();return}
  if(e.target.closest(".photo-open")){showLightbox(id);return}
@@ -909,7 +951,7 @@ document.querySelector("#deleteOne").onclick=async()=>{
  if(!confirm("이 미디어를 목록에서 삭제할까요? 원본 파일은 삭제되지 않습니다."))return;
  await del(editingId);editDialog.close();await load();
 };
-document.querySelector("#clearSelect").onclick=()=>{selected.clear();bulkChosenMembers.clear();updateBulkMemberButtons();syncCardSelection()};
+document.querySelector("#clearSelect").onclick=()=>{selectionMode=false;selected.clear();bulkChosenMembers.clear();updateBulkMemberButtons();syncCardSelection()};
 function shareFile(x,index){
  const name=String(index+1).padStart(3,"0")+"_"+safeDownloadName(x);
  const ext=name.split(".").pop().toLowerCase();

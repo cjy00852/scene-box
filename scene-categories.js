@@ -25,6 +25,7 @@ window.SceneCategories=(()=>{
   return name;
  }
  async function commit(next,deleted){await SceneData.saveCategories(next,deleted);categories=next;refresh();await load()}
+ async function quickAdd(){const entered=prompt("새 사용자 분류 이름");if(entered===null)return;try{const name=validName(entered);await commit([...categories,{id:crypto.randomUUID(),name}])}catch(e){alert(e.message)}}
  async function init(){
   categories=await SceneData.setting(SceneData.categoryKey);refresh();
   el('categoryManagerBtn').onclick=()=>{refresh();el('categoryDialog').showModal()};
@@ -49,5 +50,5 @@ window.SceneCategories=(()=>{
   }
   await SceneData.saveCategories(next);categories=next;refresh();return map;
  }
- return {init,all,ids,names,fill,read,label,restore,refresh,validName};
+ return {init,quickAdd,all,ids,names,fill,read,label,restore,refresh,validName};
 })();
