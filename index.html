@@ -330,7 +330,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
 
 <script src="google-config.js"></script>
 <script src="scene-data.js"></script>
-<script src="scene-categories.js"></script>
+<script src="scene-categories.js?v=28"></script>
 <script src="drive-rules.js"></script>
 <script src="drive-sync.js"></script>
 <script>
@@ -1164,7 +1164,7 @@ restoreInput.onchange=async e=>{
 function dataURLToBlob(dataURL){const [head,data]=dataURL.split(",");const mime=(head.match(/data:(.*?);/)||[])[1]||"application/octet-stream";const bin=atob(data);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime})}
 
 if("serviceWorker" in navigator){
- window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(()=>{}));
+ window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{}));
 }
 document.querySelector("#homeBtn").onclick=()=>{
  memberFilters.clear();
