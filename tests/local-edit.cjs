@@ -70,6 +70,19 @@ async function main(){
  await page.click('#closeCategories');
  await page.evaluate(()=>openEdit('local-0'));assert.equal(await page.locator('#editCategories option[value="category-other"]').count(),0);
  await page.click('#saveEdit');await page.waitForFunction(()=>!editDialog.open);assert.equal(await page.evaluate(()=>items.find(x=>x.id==='local-0').categoryIds.includes('category-other')),true);
+
+ await page.evaluate(async()=>{await put({id:'already-named',name:'260921_기타_원이_001',originalName:'260921_기타_원이_001.jpg',date:'2026-09-21',categoryIds:['category-other'],members:['원이'],blob:new Blob(['keep'],{type:'image/jpeg'}),tags:[],addedAt:0});await load();search.value='media';render()});
+ const beforeAuto=await snapshot();
+ await page.locator('.header-menu summary').nth(1).click();await page.click('#autoNameBtn');
+ assert.match(await page.locator('#autoNameCount').innerText(),/변경 3개/);assert.match(await page.locator('#autoNamePreview').innerText(),/260921_기타_원이_002/);
+ acceptConfirm=false;await page.click('#saveAutoName');assert.deepEqual(await snapshot(),beforeAuto);acceptConfirm=true;
+ await page.click('#saveAutoName');await page.waitForFunction(()=>!autoNameDialog.open);
+ const afterAuto=await snapshot();assert.deepEqual(afterAuto.find(x=>x.id==='already-named'),beforeAuto.find(x=>x.id==='already-named'));
+ assert.deepEqual(afterAuto.map(exceptName),beforeAuto.map(exceptName));assert.equal(new Set(afterAuto.map(x=>x.originalName)).size,4);
+ assert.ok(afterAuto.every(x=>/^260921_기타_원이_00[1-4]$/.test(x.name)));
+ await page.reload();await page.waitForFunction(()=>typeof items!=='undefined'&&items.length===4);assert.deepEqual(await snapshot(),afterAuto);
+ await page.locator('.header-menu summary').nth(1).click();await page.click('#autoNameBtn');assert.equal(await page.locator('#saveAutoName').isDisabled(),true);await page.click('#cancelAutoName');
+ console.log('PASS whole-library auto names ignore filters, reserve existing numbers, preserve originals, skip organized names and persist after reload');
  await page.setViewportSize({width:320,height:800});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
  console.log('PASS category + placement/add/validation/select/rename/delete; selection controls; blank/cancel/date-only/activity-only/both edits; original and metadata preservation; reload; viewer; mobile width');
  }finally{await browser.close()}

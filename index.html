@@ -177,7 +177,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
     <button class="btn" id="backgroundBtn">상단 배경</button><button class="btn" id="pageBackgroundBtn">전체 배경</button>
    </div></details>
    <details class="header-menu"><summary class="btn">관리 <span aria-hidden="true">⌄</span></summary><div class="header-menu-panel">
-    <button class="btn" id="categoryManagerBtn">자료 분류 관리</button><button class="btn" id="driveSyncBtn">Google Drive 동기화</button><button class="btn" id="duplicateBtn">중복 정리</button><button class="btn" id="backupBtn">전체 백업</button><button class="btn" id="restoreBtn">백업 복원</button><button class="btn" id="exportBtn">목록 CSV 내보내기</button>
+    <button class="btn" id="autoNameBtn">전체 이름 자동 정리</button><button class="btn" id="categoryManagerBtn">자료 분류 관리</button><button class="btn" id="driveSyncBtn">Google Drive 동기화</button><button class="btn" id="duplicateBtn">중복 정리</button><button class="btn" id="backupBtn">전체 백업</button><button class="btn" id="restoreBtn">백업 복원</button><button class="btn" id="exportBtn">목록 CSV 내보내기</button>
    </div></details>
    <button class="btn install" id="installBtn" hidden>앱 설치</button>
   </nav>
@@ -233,6 +233,7 @@ body[data-photo-size="list"] .photo-open{width:92px;height:112px}
 </div>
 
 
+<dialog id="autoNameDialog"><div class="modal"><h2>전체 이름 자동 정리</h2><p class="hint">선택·검색 범위와 관계없이 전체 자료를 확인합니다. 지정한 날짜·자료 분류·멤버로 이름을 만들고, 같은 형식으로 정리된 이름은 건너뜁니다. 날짜가 없으면 등록일을 사용합니다. 파일 내용과 분류는 유지됩니다.</p><p id="autoNameCount" aria-live="polite"></p><pre id="autoNamePreview" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:35vh;overflow:auto"></pre><div class="actions"><button class="btn" id="cancelAutoName">취소</button><button class="btn primary" id="saveAutoName">전체 적용</button></div></div></dialog>
 <dialog id="bulkRenameDialog"><div class="modal"><h2>선택 자료 이름 변경</h2><p id="renameCount"></p><p class="hint">SCENE BOX 표시 이름과 저장된 파일명을 함께 바꿉니다. 확장자는 유지하며 현재 목록 순서대로 번호를 붙입니다. 휴대폰 원본과 Drive 이름 규칙은 그대로입니다.</p><label>공통 이름<input class="field" id="renamePrefix" maxlength="100" placeholder="예: 팬사인회"></label><label>시작 번호<input class="field" id="renameStart" type="number" min="1" max="999999" step="1" value="1"></label><pre id="renamePreview" style="white-space:pre-wrap;overflow-wrap:anywhere" aria-live="polite"></pre><div class="actions"><button class="btn" id="cancelRename">취소</button><button class="btn primary" id="saveRename">이름 변경</button></div></div></dialog>
 <dialog id="bulkEditDialog"><div class="modal"><h2>날짜·행사 일괄 수정</h2><p id="bulkEditCount"></p><p class="hint">입력한 항목만 변경합니다. 비워 둔 항목은 기존 값을 유지합니다.</p><label>날짜<input class="field" type="date" id="bulkEditDate"></label><label>행사<input class="field" id="bulkEditActivity" list="bulkActivityOptions" placeholder="행사 입력 또는 선택"></label><datalist id="bulkActivityOptions"></datalist><div class="actions"><button class="btn" id="cancelBulkEdit">취소</button><button class="btn primary" id="saveBulkEdit">변경 적용</button></div></div></dialog>
 <dialog id="driveDialog"><div class="modal"><h2>Google Drive 자동 동기화</h2><p id="driveStatus" role="status"></p><p id="driveCounts" aria-live="polite"></p><p id="driveLastSync" class="hint"></p><p class="hint">앱을 열어둔 동안 원본을 최대 20개씩 동시에 업로드합니다. 로컬에서 삭제해도 Drive 파일은 삭제하지 않습니다. 연결이 만료되면 재연결이 필요합니다.</p><ul id="driveFailures"></ul><div class="actions"><button class="btn primary" id="driveConnect">Google Drive 연결 / 재연결</button><button class="btn" id="driveDisconnect">연결 해제</button><button class="btn" id="driveRetry">실패 항목 재시도</button><button class="btn" id="closeDrive">닫기</button></div></div></dialog>
@@ -857,6 +858,31 @@ document.querySelector('#selectionModeBtn').onclick=()=>{selectionMode=true;upda
 document.querySelector('#selectAllMedia').onclick=()=>{selectionMode=true;for(const x of filtered())selected.add(x.id);syncCardSelection()};
 document.querySelector('#deselectMedia').onclick=()=>{selected.clear();syncCardSelection()};
 document.querySelector('#cancelSelection').onclick=()=>document.querySelector('#clearSelect').click();
+let autoNamePlan=[];
+function buildAutoNamePlan(rows){
+ const structured=/^(?:등록일)?\d{6}_.+_(?:원이|리브|미나미|메이|제나|단체|기타)(?:\+(?:원이|리브|미나미|메이|제나))*_\d{3,}(?:\.[a-zA-Z0-9]{1,10})?$/;
+ const used=new Set(rows.flatMap(x=>[x.name||'',x.originalName||'']).map(v=>v.toLowerCase())),next=new Map(),plan=[],now=Date.now();
+ for(const x of [...rows].sort((a,b)=>(a.addedAt||0)-(b.addedAt||0)||String(a.id).localeCompare(String(b.id)))){
+  if(structured.test(x.name||'')||structured.test(x.originalName||''))continue;
+  const {prefix,ext}=SceneDriveRules.nameParts(x,SceneCategories.all(),x.date,now);let n=next.get(prefix)||1,name,file;
+  do{name=prefix+String(n++).padStart(3,'0');file=name+'.'+ext}while(used.has(name.toLowerCase())||used.has(file.toLowerCase()));
+  next.set(prefix,n);used.add(name.toLowerCase());used.add(file.toLowerCase());plan.push({id:x.id,name,originalName:file,oldName:x.name||x.originalName||'',revision:x.syncRevision});
+ }return plan;
+}
+document.querySelector('#autoNameBtn').onclick=()=>{
+ autoNamePlan=buildAutoNamePlan(items);document.querySelector('#autoNameCount').textContent='전체 '+items.length+'개 중 변경 '+autoNamePlan.length+'개 · 정리된 이름 '+(items.length-autoNamePlan.length)+'개 제외';
+ document.querySelector('#autoNamePreview').textContent=autoNamePlan.slice(0,20).map(p=>p.oldName+' → '+p.originalName).join('\n')+(autoNamePlan.length>20?'\n… 외 '+(autoNamePlan.length-20)+'개':'');
+ document.querySelector('#saveAutoName').disabled=!autoNamePlan.length;document.querySelector('#autoNameDialog').showModal();
+};
+document.querySelector('#cancelAutoName').onclick=()=>document.querySelector('#autoNameDialog').close();
+document.querySelector('#saveAutoName').onclick=async()=>{
+ const button=document.querySelector('#saveAutoName');if(button.disabled||!autoNamePlan.length)return;
+ if(!confirm('이름이 정리되지 않은 '+autoNamePlan.length+'개의 표시 이름과 저장 파일명을 변경하시겠습니까?'))return;
+ button.disabled=true;document.querySelector('#cancelAutoName').disabled=true;let changed=0,skipped=0;
+ try{for(const p of autoNamePlan){const x=await SceneData.photo(p.id);if(!x||x.syncRevision!==p.revision){skipped++;continue}x.name=p.name;x.originalName=p.originalName;await put(x);changed++;document.querySelector('#autoNameCount').textContent=changed+'개 변경 중…'}
+  await load();document.querySelector('#autoNameDialog').close();alert(changed+'개의 이름을 정리했습니다.'+(skipped?' 다른 수정이 있었던 '+skipped+'개는 건너뛰었습니다.':''));
+ }catch(e){await load();alert(changed+'개 변경 후 중단되었습니다. 다시 실행하면 나머지 자료부터 정리합니다: '+e.message)}finally{button.disabled=false;document.querySelector('#cancelAutoName').disabled=false}
+};
 let renameIds=[];
 function renamePlan(){
  const prefix=document.querySelector('#renamePrefix').value.trim().replace(/[\\/:*?"<>|\u0000-\u001f]/g,'_'),start=Number(document.querySelector('#renameStart').value);
