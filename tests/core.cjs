@@ -71,7 +71,7 @@ async function main(){
  assert.deepEqual(await page.evaluate(async()=>(await SceneData.photo('orphan-category')).categoryIds),['category-other']);await page.evaluate(()=>del('orphan-category'));
  console.log('PASS EXIF/video dates, metadata priority, unknown category recovery');
  // Fake API: no real credentials, uploads, or Google requests leave this test context.
- const files=new Map(),sessions=new Map();let ids=0,oauthCalls=0,uploadCalls=0,failUpload=false,unauthorized=false,alwaysFail=false;
+ const files=new Map(),sessions=new Map();let ids=0,oauthCalls=0,uploadCalls=0,failUpload=false,unauthorized=false,alwaysFail=false,activeUploads=0,peakUploads=0;
  await context.route('**/google-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.SCENE_GOOGLE_CLIENT_ID="test-client";'}));
  await context.route('https://accounts.google.com/gsi/client',r=>r.fulfill({contentType:'text/javascript',body:'window.google={accounts:{oauth2:{initTokenClient:o=>({requestAccessToken:()=>{window.testOAuthCalls=(window.testOAuthCalls||0)+1;Object.defineProperty(document,"hidden",{configurable:true,value:true});o.callback({access_token:"TEST_ONLY",expires_in:3600});setTimeout(()=>{Object.defineProperty(document,"hidden",{configurable:true,value:false});document.dispatchEvent(new Event("visibilitychange"))},100)}})}}};'}));
  await context.addInitScript(()=>{Object.defineProperty(navigator,'wakeLock',{value:{request:async()=>{window.wakeRequests=(window.wakeRequests||0)+1;return {release:async()=>{window.wakeReleases=(window.wakeReleases||0)+1}}}}})});
@@ -90,6 +90,7 @@ async function main(){
    }
    const session=sessions.get(uploadId);if(!session)return send({},404);
    if(req.headers()['content-range']?.startsWith('bytes */'))return files.has(session.id)?send({id:session.id}):send({},308);
+   if(session.meta.appProperties?.sceneBoxId?.startsWith('parallel-')){activeUploads++;peakUploads=Math.max(peakUploads,activeUploads);await new Promise(r=>setTimeout(r,200));activeUploads--;}
    uploadCalls++;if(failUpload||alwaysFail){failUpload=false;return send({error:{message:'temporary upload failure'}},503)}
    files.set(session.id,{...files.get(session.id),...session.meta,id:session.id,parents:session.meta.parents||files.get(session.id)?.parents||[],trashed:false});return send({id:session.id});
   }
@@ -118,6 +119,12 @@ async function main(){
  await waitUntil(()=>page.evaluate(async()=>(await SceneData.jobs()).find(j=>j.id==='collision')?.state==='success'));
  assert.match([...files.values()].find(f=>f.appProperties?.sceneBoxId==='collision').name,/_002\.jpg$/);
  console.log('PASS empty category folder creation, same-ID rename, filename collision');
+ await page.evaluate(async()=>{for(let i=0;i<6;i++)await put({id:'parallel-'+i,name:'parallel',originalName:'p.jpg',blob:new Blob(['p'+i],{type:'image/jpeg'}),members:['미나미','메이'],date:'2026-09-20',tags:[],addedAt:Date.now()});await load()});
+ await waitUntil(()=>page.evaluate(async()=>(await SceneData.jobs()).filter(j=>j.id.startsWith('parallel-')).every(j=>j.state==='success')));
+ const parallelFiles=[...files.values()].filter(f=>f.appProperties?.sceneBoxId?.startsWith('parallel-'));
+ assert.equal(peakUploads,3);assert.equal(parallelFiles.length,6);assert.equal(new Set(parallelFiles.map(f=>f.name)).size,6);assert.equal(new Set(parallelFiles.map(f=>f.parents[0])).size,1);
+ assert.equal([...files.values()].filter(f=>f.appProperties?.sceneBoxFolder==='combo:미나미+메이').length,1);
+ console.log('PASS three concurrent uploads, six unique names and one shared combination folder');
  failUpload=true;
  await page.evaluate(async()=>{await put({id:'retry',name:'retry',originalName:'retry.png',blob:new Blob(['abc'],{type:'image/png'}),members:['메이'],date:'2026-09-20',tags:[],addedAt:Date.now()});await load()});
  await waitUntil(()=>page.evaluate(async()=>(await SceneData.jobs()).find(j=>j.id==='retry')?.attempts===1));

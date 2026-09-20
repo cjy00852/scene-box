@@ -1,28 +1,30 @@
 /* One-way, non-destructive local -> Google Drive synchronization. */
 window.SceneDrive=(()=>{
  const API='https://www.googleapis.com/drive/v3',UPLOAD='https://www.googleapis.com/upload/drive/v3';
- const SCOPE='https://www.googleapis.com/auth/drive.file',MAX_ATTEMPTS=5,CHUNK=4*1024*1024;
+ const SCOPE='https://www.googleapis.com/auth/drive.file',MAX_ATTEMPTS=5,CHUNK=4*1024*1024,CONCURRENCY=3;
+ const controllers=new Set(),folderRequests=new Map(),reservedNames=new Map();
+ const abortRequests=()=>{for(const c of controllers)c.abort()};
  const el=id=>document.getElementById(id),escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let session=null,tokenClient=null,connected=false,running=false,timer=0,wake=null,controller=null,folders={},lastSync=0,statusMessage='',initialized=false,connecting=false,pendingToken=null;
+ let session=null,tokenClient=null,connected=false,running=false,timer=0,wake=null,folders={},lastSync=0,statusMessage='',initialized=false,connecting=false,pendingToken=null;
  const hasToken=()=>connected&&session&&session.expiresAt>Date.now()+10000;
  const valid=()=>hasToken()&&!!session.accountId;
  const authError=()=>Object.assign(Error('Google 연결이 만료되었습니다. 재연결해주세요.'),{auth:true});
  const pauseError=()=>Object.assign(Error('화면으로 돌아오면 이어서 처리합니다.'),{paused:true});
  const quote=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
  function keepSession(){try{if(session)sessionStorage.setItem('scene-drive-session',JSON.stringify(session));else sessionStorage.removeItem('scene-drive-session')}catch{}}
- function expire(){session=null;keepSession();statusMessage='Google 연결이 만료되었습니다. 재연결하면 대기 작업을 이어갑니다.'}
+ function expire(){abortRequests();session=null;keepSession();statusMessage='Google 연결이 만료되었습니다. 재연결하면 대기 작업을 이어갑니다.'}
  async function api(path,options={}){
   if(!hasToken())throw authError();if(document.hidden||!navigator.onLine)throw pauseError();
   const url=path.startsWith('https://')?path:API+path;
   if(!url.startsWith(API+'/')&&!url.startsWith(UPLOAD+'/'))throw Error('잘못된 Drive 요청 주소');
-  controller=new AbortController();const timeout=setTimeout(()=>controller?.abort(),90000);
+  const controller=new AbortController();controllers.add(controller);const timeout=setTimeout(()=>controller.abort(),90000);
   try{
    const response=await fetch(url,{...options,headers:{Authorization:'Bearer '+session.accessToken,...options.headers},signal:controller.signal});
    if(response.status===401)throw authError();
    if(!response.ok&&response.status!==308){let message='Drive 요청 실패 ('+response.status+')';try{message=(await response.json()).error?.message||message}catch{}throw Object.assign(Error(message),{status:response.status})}
    return response;
-  }catch(err){if(err.name==='AbortError'&&(document.hidden||!connected||!navigator.onLine))throw pauseError();throw err}
-  finally{clearTimeout(timeout);controller=null}
+  }catch(err){if(err.name==='AbortError'&&(document.hidden||!connected||!session||!navigator.onLine))throw pauseError();throw err}
+  finally{clearTimeout(timeout);controllers.delete(controller)}
  }
  async function json(path,options={}){const response=await api(path,options);return response.status===204?{}:response.json()}
  const metadata=(method,body)=>({method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -33,6 +35,11 @@ window.SceneDrive=(()=>{
  async function getFile(id){try{return await json('/files/'+encodeURIComponent(id)+'?fields=id,name,parents,trashed,appProperties')}catch(e){if(e.status===404)return null;throw e}}
  async function persistFolders(){await SceneData.setSetting('drive-folders:'+session.accountId,folders)}
  async function folder(key,name,parent){
+  while(folderRequests.has(key))await folderRequests.get(key);
+  const task=ensureFolder(key,name,parent);folderRequests.set(key,task);
+  try{return await task}finally{if(folderRequests.get(key)===task)folderRequests.delete(key)}
+ }
+ async function ensureFolder(key,name,parent){
   let state=folders[key],file=state?.confirmed?{id:state.id,name:state.name}:null;
   if(!file){
    if(state?.id)file=await getFile(state.id);
@@ -49,7 +56,8 @@ window.SceneDrive=(()=>{
   const {prefix,ext}=SceneDriveRules.nameParts(x,SceneCategories.all(),capturedAt,firstSyncAt);
   if(remote.name&&remote.nameKey===prefix+'.'+ext&&remote.parent===parent)return remote.name;
   const files=await list(`trashed = false and '${quote(parent)}' in parents`,'id,name');const names=new Set(files.filter(f=>f.id!==remote.fileId).map(f=>f.name));
-  let n=1,name;do{name=prefix+String(n++).padStart(3,'0')+'.'+ext}while(names.has(name));return name;
+  let reserved=reservedNames.get(parent);if(!reserved){reserved=new Map();reservedNames.set(parent,reserved)}
+  let n=1,name;do{name=prefix+String(n++).padStart(3,'0')+'.'+ext}while(names.has(name)||(reserved.has(name)&&reserved.get(name)!==x.id));reserved.set(name,x.id);return name;
  }
  async function upload(job,x,remote,body){
   const version=x.hash||x.contentVersion;
@@ -109,29 +117,35 @@ window.SceneDrive=(()=>{
  }
  function schedule(delay=200){clearTimeout(timer);if(initialized&&!running&&valid()&&!document.hidden&&navigator.onLine)timer=setTimeout(run,delay)}
  async function processQueue(){
-  let root=null;
-  while(valid()&&!document.hidden&&navigator.onLine){
-   const pending=(await SceneData.jobs()).filter(j=>j.state==='pending'&&(j.nextAt||0)<=Date.now());const job=pending.find(j=>j.kind==='category')||pending[0];if(!job)break;
-   if(!wake)await acquireWake();
+  let rootPromise=null;
+  for(const job of await SceneData.jobs()){const r=job.remotes?.[session?.accountId];if(r?.parent&&r.name){if(!reservedNames.has(r.parent))reservedNames.set(r.parent,new Map());reservedNames.get(r.parent).set(r.name,job.id)}}
+  async function processJob(job){
    await SceneData.patchJob(job.id,j=>({...j,state:'running'}));
    try{
-    if(!root)root=await baseFolders();
+    if(!rootPromise)rootPromise=baseFolders().catch(e=>{rootPromise=null;throw e});
+    const root=await rootPromise;
     if(job.kind==='category'){const c=SceneCategories.all().find(c=>c.id===job.id.slice(9));if(c)await folder(c.id==='category-other'?'other':'category:'+c.id,c.name,root)}
     else await syncFile(job,root);
     lastSync=Date.now();await SceneData.setSetting('drive-last-sync',lastSync);
     const account=session.accountId;await SceneData.patchJob(job.id,j=>({...j,state:j.revision===job.revision?'success':'pending',completedAccount:account,attempts:0,error:'',completedAt:Date.now()}));
    }catch(e){
-    if(e.auth){expire();await SceneData.patchJob(job.id,j=>({...j,state:'pending'}));break}
-    if(e.paused||!navigator.onLine||document.hidden||!connected){await SceneData.patchJob(job.id,j=>({...j,state:'pending'}));break}
+    if(e.auth){expire();await SceneData.patchJob(job.id,j=>({...j,state:'pending'}));return}
+    if(e.paused||!navigator.onLine||document.hidden||!connected||!session){await SceneData.patchJob(job.id,j=>({...j,state:'pending'}));return}
     await SceneData.patchJob(job.id,j=>{if(j.revision!==job.revision)return {...j,state:'pending'};const attempts=(j.attempts||0)+1;return {...j,attempts,state:attempts>=MAX_ATTEMPTS?'failed':'pending',nextAt:Date.now()+[5000,15000,45000,120000,300000][Math.min(attempts-1,4)],error:e.message}});
    }
+  }
+  while(valid()&&!document.hidden&&navigator.onLine){
+   const pending=(await SceneData.jobs()).filter(j=>j.state==='pending'&&(j.nextAt||0)<=Date.now());if(!pending.length)break;
+   if(!wake)await acquireWake();
+   const categories=pending.filter(j=>j.kind==='category');
+   await Promise.all((categories.length?categories:pending).slice(0,CONCURRENCY).map(processJob));
   }
  }
  async function run(){
   if(running||!valid()||document.hidden||!navigator.onLine)return;running=true;
   try{if(navigator.locks)await navigator.locks.request('scene-box-drive-upload',{ifAvailable:true},async lock=>{if(lock)await processQueue()});else await processQueue()}
   catch(e){statusMessage=e.message}
-  finally{running=false;await releaseWake();await renderStatus();const jobs=await SceneData.jobs(),waiting=jobs.filter(j=>j.state==='pending');if(waiting.length&&valid())schedule(Math.max(1000,Math.min(...waiting.map(j=>j.nextAt||0))-Date.now()))}
+  finally{running=false;reservedNames.clear();await releaseWake();await renderStatus();const jobs=await SceneData.jobs(),waiting=jobs.filter(j=>j.state==='pending');if(waiting.length&&valid())schedule(Math.max(1000,Math.min(...waiting.map(j=>j.nextAt||0))-Date.now()))}
  }
  async function acceptToken(response){
   connecting=false;if(response.error){statusMessage='Google 연결을 완료하지 못했습니다: '+response.error;await renderStatus();return}
@@ -162,10 +176,10 @@ window.SceneDrive=(()=>{
   for(const j of await SceneData.jobs())if(j.state==='running')await SceneData.patchJob(j.id,x=>({...x,state:'pending'}));
   el('driveSyncBtn').onclick=()=>{renderStatus();el('driveDialog').showModal()};el('closeDrive').onclick=()=>el('driveDialog').close();
   el('driveConnect').onclick=()=>{if(!tokenClient||connecting)return;connecting=true;statusMessage='Google 연결 중…';renderStatus();try{pendingToken=null;tokenClient.requestAccessToken({prompt:'',...(session?.email?{hint:session.email}:{})})}catch(e){connecting=false;statusMessage='Google 로그인 창을 열지 못했습니다. 다시 연결해주세요.';renderStatus()}};
-  el('driveDisconnect').onclick=async()=>{connected=false;pendingToken=null;clearTimeout(timer);controller?.abort();session=null;keepSession();await SceneData.setSetting('drive-enabled',false);statusMessage='연결을 해제했습니다. 로컬 자료와 Drive 파일은 유지됩니다.';await releaseWake();renderStatus()};
+  el('driveDisconnect').onclick=async()=>{connected=false;pendingToken=null;clearTimeout(timer);abortRequests();session=null;keepSession();await SceneData.setSetting('drive-enabled',false);statusMessage='연결을 해제했습니다. 로컬 자료와 Drive 파일은 유지됩니다.';await releaseWake();renderStatus()};
   el('driveRetry').onclick=async()=>{for(const j of await SceneData.jobs())if(j.state==='failed')await SceneData.patchJob(j.id,x=>({...x,state:'pending',attempts:0,nextAt:0,error:''}));statusMessage='';schedule();renderStatus()};
-  window.addEventListener('scene-data-change',()=>{renderStatus();schedule()});window.addEventListener('online',()=>{if(pendingToken&&!connecting)acceptToken(pendingToken);else{statusMessage='';schedule()}});window.addEventListener('offline',()=>controller?.abort());
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){controller?.abort();releaseWake()}else{if(pendingToken&&!connecting)acceptToken(pendingToken);else{schedule();renderStatus()}}});
+  window.addEventListener('scene-data-change',()=>{renderStatus();schedule()});window.addEventListener('online',()=>{if(pendingToken&&!connecting)acceptToken(pendingToken);else{statusMessage='';schedule()}});window.addEventListener('offline',()=>abortRequests());
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){abortRequests();releaseWake()}else{if(pendingToken&&!connecting)acceptToken(pendingToken);else{schedule();renderStatus()}}});
   loadGoogle();await renderStatus();schedule();
  }
  return {init,renderStatus,run};
