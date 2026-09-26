@@ -134,6 +134,7 @@ async function main(){
  const parallelFiles=[...files.values()].filter(f=>f.appProperties?.sceneBoxId?.startsWith('parallel-'));
  assert.equal(peakUploads,20);assert.equal(parallelFiles.length,40);assert.equal(new Set(parallelFiles.map(f=>f.name)).size,40);assert.equal(new Set(parallelFiles.map(f=>f.parents[0])).size,1);
  assert.equal([...files.values()].filter(f=>f.appProperties?.sceneBoxFolder==='combo:미나미+메이').length,1);
+ await page.evaluate(()=>SceneDrive.renderStatus());assert.equal(await page.locator('#driveQuickBtn').getAttribute('data-state'),'complete');
  console.log('PASS twenty concurrent uploads, forty unique names and one shared combination folder');
  failUpload=true;
  await page.evaluate(async()=>{await put({id:'retry',name:'retry',originalName:'retry.png',blob:new Blob(['abc'],{type:'image/png'}),members:['메이'],date:'2026-09-20',tags:[],addedAt:Date.now()});await load()});
@@ -151,6 +152,7 @@ async function main(){
   if(attempt<5)await page.evaluate(()=>SceneData.patchJob('bounded',j=>({...j,nextAt:0})));
  }
  assert.equal(await page.evaluate(async()=>(await SceneData.jobs()).find(j=>j.id==='bounded').state),'failed');
+ await page.evaluate(()=>SceneDrive.renderStatus());assert.equal(await page.locator('#driveQuickBtn').getAttribute('data-state'),'error');
  const failedUploadCalls=uploadCalls;await page.evaluate(()=>SceneDrive.run());assert.equal(uploadCalls,failedUploadCalls);
  alwaysFail=false;await page.click('#driveRetry');await waitUntil(()=>page.evaluate(async()=>(await SceneData.jobs()).find(j=>j.id==='bounded').state==='success'));
  console.log('PASS bounded automatic retry and explicit failed-job retry');
@@ -160,7 +162,7 @@ async function main(){
  assert.ok([...files.values()].some(f=>f.appProperties?.sceneBoxFolder==='root'));
  console.log('PASS permanently deleted entire Drive tree rebuilt from local originals');
  await page.waitForFunction(()=>window.wakeReleases>=window.wakeRequests);
- await page.click('#driveDisconnect');await page.click('#closeDrive');await page.setViewportSize({width:320,height:800});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ await page.click('#driveDisconnect');await page.waitForFunction(()=>document.getElementById('driveQuickBtn').dataset.state==='disconnected');await page.click('#closeDrive');await page.click('#driveQuickBtn');assert.equal(await page.locator('#driveDialog').evaluate(x=>x.open),true);await page.click('#closeDrive');await page.setViewportSize({width:320,height:800});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
  assert.deepEqual(errors,[]);console.log('PASS auth expiry pause/manual reconnect, Wake Lock release, local-only delete, mobile layout');
  }finally{await browser.close()}
 }

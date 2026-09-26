@@ -38,6 +38,14 @@ async function main(){
  for(const width of [320,1200]){await page.setViewportSize({width,height:800});for(const n of ['2','3','4','5','6']){await page.selectOption('#photoSize',n);assert.equal(await page.locator('#gallery .grid').first().evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),Number(n));}}
  await page.reload();await page.waitForFunction(()=>typeof items!=='undefined'&&items.length===3);assert.equal(await page.locator('#photoSize').inputValue(),'6');await page.selectOption('#photoSize','3');await page.setViewportSize({width:390,height:844});
  const controls=await page.evaluate(()=>{const d=document.querySelector('.date-range').getBoundingClientRect(),s=document.querySelector('#sort').getBoundingClientRect(),b=document.querySelector('#shuffleBtn').getBoundingClientRect();return {sameRow:Math.abs(d.top-s.top)<2&&Math.abs(s.top-b.top)<2,ordered:d.right<=s.left&&s.right<=b.left}});assert.deepEqual(controls,{sameRow:true,ordered:true});await page.click('#shuffleBtn');assert.equal(await page.locator('#sort').inputValue(),'random');await page.selectOption('#sort','new');
+ assert.equal(await page.locator('#viewMode').inputValue(),'member');
+ assert.deepEqual(await page.locator('#pageSizeSelect option').evaluateAll(es=>es.map(e=>e.value)),['50','100','150','200','250']);
+ await page.selectOption('#viewMode','folder');assert.equal(await page.locator('[data-folder]').count(),8);await page.click('[data-folder="원이"]');assert.equal(await page.locator('#gallery .card').count(),3);await page.click('#folderBack');await page.click('[data-folder="제나"]');assert.equal(await page.locator('#gallery .card').count(),0);await page.click('#folderBack');
+ await page.selectOption('#viewMode','member');
+ await page.evaluate(()=>{items=Array.from({length:251},(_,i)=>({...items[0],id:'page-test-'+i}));render()});
+ for(const n of ['50','100','150','200','250']){await page.selectOption('#pageSizeSelect',n);assert.equal(await page.locator('#gallery .card').count(),Number(n));}
+ await page.locator('.page-btn[data-page="2"]').first().click();assert.equal(await page.locator('#gallery .card').count(),1);
+ await page.reload();await page.waitForFunction(()=>typeof items!=='undefined'&&items.length===3);assert.equal(await page.locator('#pageSizeSelect').inputValue(),'250');assert.equal(await page.locator('#viewMode').inputValue(),'member');
  const before=await snapshot();
  assert.equal(await page.locator('#selectionModeBtn,#selectionActions').count(),0);
  await page.locator('.card[data-id="local-0"] .check').check();assert.equal(await page.locator('#selectedCount').innerText(),'1장 선택');

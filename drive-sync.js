@@ -112,6 +112,17 @@ window.SceneDrive=(()=>{
  async function renderStatus(){
   if(!initialized)return;const jobs=await SceneData.jobs(),files=jobs.filter(j=>j.kind==='file');
   const counts={pending:0,running:0,success:0,failed:0};for(const j of files)counts[j.state in counts?j.state:'pending']++;
+  let state='disconnected',label='연결 안 됨';
+  if(connecting||pendingToken){state='working';label='연결 중'}
+  else if(!navigator.onLine){label='인터넷 연결 필요'}
+  else if(connected&&!valid()){state='error';label='재연결 필요'}
+  else if(valid()){
+   if(rootFailures||jobs.some(j=>j.state==='failed')){state='error';label='동기화 확인 필요'}
+   else if(jobs.some(j=>j.state==='running')){state='working';label='동기화 중'}
+   else if(jobs.some(j=>j.state!=='success'||j.completedAccount!==session.accountId)){state='pending';label='동기화 대기'}
+   else{state='complete';label='동기화 완료'}
+  }
+  const quick=el('driveQuickBtn');quick.dataset.state=state;quick.setAttribute('aria-label','Google 동기화: '+label);quick.title=label+' · 눌러서 자세히 보기';el('driveQuickStatus').textContent=label;
   el('driveCounts').textContent=`대기 ${counts.pending} · 진행 중 ${counts.running} · 성공 ${counts.success} · 실패 ${counts.failed}`;
   const byId=new Map(items.map(x=>[x.id,x]));const display=[...files.filter(j=>j.state==='running'),...files.filter(j=>j.state==='success').sort((a,b)=>(b.completedAt||0)-(a.completedAt||0)).slice(0,20)];
   el('driveUploadList').innerHTML=display.length?display.map(j=>'<li>'+escape(byId.get(j.id)?.originalName||byId.get(j.id)?.name||j.id)+' · '+(j.state==='running'?'업로드 중':'완료')+'</li>').join(''):'<li>진행 중인 업로드가 없습니다.</li>';
@@ -183,12 +194,12 @@ window.SceneDrive=(()=>{
   try{const cached=JSON.parse(sessionStorage.getItem('scene-drive-session')||'null');if(cached?.clientId===window.SCENE_GOOGLE_CLIENT_ID&&cached.expiresAt>Date.now()+10000&&cached.accountId)session=cached}catch{}
   if(session){folders=await SceneData.setting('drive-folders:'+session.accountId)||{};for(const f of Object.values(folders))f.confirmed=false}
   for(const j of await SceneData.jobs())if(j.state==='running')await SceneData.patchJob(j.id,x=>({...x,state:'pending'}));
-  el('driveSyncBtn').onclick=()=>{renderStatus();el('driveDialog').showModal()};el('closeDrive').onclick=()=>el('driveDialog').close();
+  el('driveQuickBtn').onclick=el('driveSyncBtn').onclick=()=>{renderStatus();el('driveDialog').showModal()};el('closeDrive').onclick=()=>el('driveDialog').close();
   el('driveConnect').onclick=()=>{if(!tokenClient||connecting)return;connecting=true;statusMessage='Google 연결 중…';renderStatus();try{pendingToken=null;tokenClient.requestAccessToken({prompt:'',...(session?.email?{hint:session.email}:{})})}catch(e){connecting=false;statusMessage='Google 로그인 창을 열지 못했습니다. 다시 연결해주세요.';renderStatus()}};
   el('driveDisconnect').onclick=async()=>{connected=false;pendingToken=null;clearTimeout(timer);abortRequests();session=null;keepSession();await SceneData.setSetting('drive-enabled',false);statusMessage='연결을 해제했습니다. 로컬 자료와 Drive 파일은 유지됩니다.';await releaseWake();renderStatus()};
   el('driveRetry').onclick=async()=>{rootFailures=0;for(const j of await SceneData.jobs())if(j.state==='failed')await SceneData.patchJob(j.id,x=>({...x,state:'pending',attempts:0,nextAt:0,error:''}));statusMessage='';schedule();renderStatus()};
-  setInterval(()=>{if(valid()&&!running&&rootFailures<5&&!document.hidden&&navigator.onLine)schedule()},60000);
-  window.addEventListener('scene-data-change',()=>{renderStatus();schedule()});window.addEventListener('online',()=>{if(pendingToken&&!connecting)acceptToken(pendingToken);else{statusMessage='';schedule()}});window.addEventListener('offline',()=>abortRequests());
+  setInterval(()=>{renderStatus();if(valid()&&!running&&rootFailures<5&&!document.hidden&&navigator.onLine)schedule()},60000);
+  window.addEventListener('scene-data-change',()=>{renderStatus();schedule()});window.addEventListener('online',()=>{renderStatus();if(pendingToken&&!connecting)acceptToken(pendingToken);else{statusMessage='';schedule()}});window.addEventListener('offline',()=>{abortRequests();renderStatus()});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){abortRequests();releaseWake()}else{if(pendingToken&&!connecting)acceptToken(pendingToken);else{schedule();renderStatus()}}});
   loadGoogle();await renderStatus();schedule();
  }

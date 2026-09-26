@@ -170,6 +170,10 @@ body[data-photo-columns] .grid{grid-template-columns:repeat(var(--photo-columns,
 .controls .field{padding-top:6px;padding-bottom:6px}.controls #sort,.controls #shuffleBtn{min-height:32px;padding-top:5px;padding-bottom:5px}@media(max-width:760px){.controls .field{padding-top:5px;padding-bottom:5px}}
 .header-brand{min-width:0}@media(max-width:620px){.top{display:grid;grid-template-columns:minmax(0,1fr) 64px auto;gap:8px;padding-top:11px}.top>.header-actions{grid-column:1/-1}.storage-usage{font-size:10px;line-height:1.4;text-align:center;word-break:keep-all}.quick-help{gap:4px}.quick-help .btn{font-size:11px;padding:9px 7px;white-space:nowrap}.header-brand .logo{font-size:17px}.header-brand .subtitle{font-size:9px}}
 .header-brand{display:flex;align-items:center;gap:7px}.header-photo-logo{width:36px;height:36px;flex:0 0 auto;object-fit:cover;object-position:center 38%;border-radius:50%;border:1px solid var(--line)}.header-brand-text{min-width:0}.header-brand .logo{white-space:nowrap}.header-brand .subtitle{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}@media(max-width:620px){.header-photo-logo{width:28px;height:28px}.header-brand{gap:5px}}@media(max-width:380px){.top{grid-template-columns:minmax(0,1fr) 54px auto;gap:5px}.header-brand .logo{font-size:12px}.quick-help .btn{font-size:10px;padding:9px 5px}}
+.member-folders{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.member-folder{display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--ink)}.member-folder>span{font-size:30px}.member-folder small{color:var(--muted)}.member-folder:focus-visible{outline:3px solid var(--accent)}
+
+#driveQuickBtn{display:flex;align-items:center;justify-content:center;gap:6px}#driveQuickStatus{display:block;font-size:9px;font-weight:500;line-height:1.3}.drive-dot{width:8px;height:8px;border-radius:50%;background:#85818b;flex-shrink:0}#driveQuickBtn[data-state="complete"] .drive-dot{background:#169649}#driveQuickBtn[data-state="working"] .drive-dot,#driveQuickBtn[data-state="pending"] .drive-dot{background:#df9700}#driveQuickBtn[data-state="error"] .drive-dot{background:#d53f55}
+@media(max-width:620px){.top{grid-template-columns:minmax(0,1fr) auto}.quick-help{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr auto}.quick-help .btn{padding:7px 10px}.storage-usage{white-space:nowrap}.header-brand .logo{font-size:17px}}
 </style>
 </head>
 <body>
@@ -179,7 +183,7 @@ body[data-photo-columns] .grid{grid-template-columns:repeat(var(--photo-columns,
 
   <div class="header-brand"><img class="header-photo-logo" src="header-logo.jpg" alt="" width="36" height="36"><div class="header-brand-text"><div class="logo">SCENE <b>BOX</b></div><div class="subtitle">RESCENE PHOTO ARCHIVE · v2</div></div></div>
   <output id="storageUsage" class="storage-usage" aria-live="polite">저장 용량 계산 중…</output>
-  <div class="quick-help"><button class="btn primary" id="autoNameBtn">이름 바꾸기</button><button class="btn" id="tutorialBtn">사용법</button></div><nav class="header-actions" aria-label="앱 메뉴">
+  <div class="quick-help"><button class="btn primary" id="autoNameBtn">이름 바꾸기</button><button class="btn" id="driveQuickBtn" data-state="disconnected" aria-label="Google 동기화: 연결 안 됨"><span class="drive-dot" aria-hidden="true"></span><span>구글 동기화<small id="driveQuickStatus" aria-live="polite">연결 안 됨</small></span></button><button class="btn" id="tutorialBtn">사용법</button></div><nav class="header-actions" aria-label="앱 메뉴">
    <button class="btn" id="homeBtn" title="전체 화면으로 돌아가기">⌂ 홈</button>
    <details class="header-menu"><summary class="btn">배경 설정 <span aria-hidden="true">⌄</span></summary><div class="header-menu-panel">
     <button class="btn" id="backgroundBtn">상단 배경</button><button class="btn" id="pageBackgroundBtn">전체 배경</button>
@@ -215,7 +219,7 @@ body[data-photo-columns] .grid{grid-template-columns:repeat(var(--photo-columns,
   <select class="field" id="mediaFilter"><option value="">사진+GIF+영상 전체</option><option value="video">🎥 동영상만</option><option value="gif">🎞️ GIF만</option><option value="still">🖼️ 일반 사진만</option><option value="image">🖼️ 사진+GIF만</option></select>
   <select class="field" id="categoryView" aria-label="자료 분류"></select>
   <select class="field" id="photoSize" aria-label="사진 열 수"><option value="2">2열</option><option value="3" selected>3열</option><option value="4">4열</option><option value="5">5열</option><option value="6">6열</option></select>
-  <select class="field" id="viewMode"><option value="grid">전체 그리드</option><option value="member">멤버별 나누기</option></select>
+  <select class="field" id="viewMode"><option value="grid">전체 그리드</option><option value="member" selected>멤버별 나누기</option><option value="folder">멤버별 폴더 보기</option></select>
   <div class="date-range" aria-label="촬영일 기간 검색">
    <input class="field" type="date" id="dateFrom" aria-label="촬영 시작일" title="촬영 시작일">
    <span class="range-mark">~</span>
@@ -542,6 +546,8 @@ function randomRank(id){
 }
 let currentPage=1;
 let pageSize=Number(localStorage.getItem("sceneBoxPageSize")||50);
+if(![50,100,150,200,250].includes(pageSize))pageSize=50;
+let folderMember=null;
 
 function openDB(){
  return new Promise((resolve,reject)=>{
@@ -628,6 +634,7 @@ function passesNonMemberFilters(x){
 }
 function filtered(){
  let arr=items.filter(x=>passesNonMemberFilters(x) && memberMatches(x,memberFilters));
+ if(document.querySelector("#viewMode").value==="folder"&&folderMember)arr=arr.filter(x=>memberMatches(x,new Set([folderMember])));
  const s=document.querySelector("#sort").value;
  if(s==="random"){
   for(const x of arr)randomRank(x.id);
@@ -719,7 +726,7 @@ function renderPagination(total){
  const pages=Math.max(1,Math.ceil(total/pageSize));
  if(currentPage>pages)currentPage=pages;
  if(total<=pageSize){
-  box.innerHTML=`<div class="pagination-wrap"><span class="pagination-info">총 ${total.toLocaleString()}장 · 1페이지</span><select id="pageSizeSelect" class="page-size-select" aria-label="한 페이지 사진 수"><option value="50" ${pageSize===50?"selected":""}>50장씩</option><option value="100" ${pageSize===100?"selected":""}>100장씩</option><option value="200" ${pageSize===200?"selected":""}>200장씩</option></select></div>`;
+  box.innerHTML=`<div class="pagination-wrap"><span class="pagination-info">총 ${total.toLocaleString()}장 · 1페이지</span><select id="pageSizeSelect" class="page-size-select" aria-label="한 페이지 사진 수"><option value="50" ${pageSize===50?"selected":""}>50장씩</option><option value="100" ${pageSize===100?"selected":""}>100장씩</option><option value="150" ${pageSize===150?"selected":""}>150장씩</option><option value="200" ${pageSize===200?"selected":""}>200장씩</option><option value="250" ${pageSize===250?"selected":""}>250장씩</option></select></div>`;
   return;
  }
  const buttons=[];
@@ -730,7 +737,7 @@ function renderPagination(total){
  for(let i=from;i<=to;i++)buttons.push(pageButtonHTML(i,String(i),i===currentPage));
  if(to<pages){if(to<pages-1)buttons.push(`<span class="pagination-info">…</span>`);buttons.push(pageButtonHTML(pages,String(pages),currentPage===pages))}
  buttons.push(pageButtonHTML(currentPage+1,"다음 ›",false,currentPage===pages));
- box.innerHTML=`<div class="pagination-wrap"><span class="pagination-info">총 ${total.toLocaleString()}장 · ${currentPage}/${pages}페이지</span><div class="page-buttons">${buttons.join("")}</div><select id="pageSizeSelect" class="page-size-select" aria-label="한 페이지 사진 수"><option value="50" ${pageSize===50?"selected":""}>50장씩</option><option value="100" ${pageSize===100?"selected":""}>100장씩</option><option value="200" ${pageSize===200?"selected":""}>200장씩</option></select></div>`;
+ box.innerHTML=`<div class="pagination-wrap"><span class="pagination-info">총 ${total.toLocaleString()}장 · ${currentPage}/${pages}페이지</span><div class="page-buttons">${buttons.join("")}</div><select id="pageSizeSelect" class="page-size-select" aria-label="한 페이지 사진 수"><option value="50" ${pageSize===50?"selected":""}>50장씩</option><option value="100" ${pageSize===100?"selected":""}>100장씩</option><option value="150" ${pageSize===150?"selected":""}>150장씩</option><option value="200" ${pageSize===200?"selected":""}>200장씩</option><option value="250" ${pageSize===250?"selected":""}>250장씩</option></select></div>`;
 }
 function categoryAddHTML(){return '<button type="button" class="btn category-add" aria-label="사용자 분류 추가" title="사용자 분류 추가">+</button>'}
 function render(){
@@ -757,9 +764,16 @@ function render(){
  document.querySelector("#stats").innerHTML=`<div class="stat">전체 <b>${items.length}</b></div><div class="stat">현재 보기 <b>${arr.length}</b></div><div class="stat">현재 페이지 <b>${pageArr.length}</b></div><div class="stat">GIF <b>${gifs}</b></div><div class="stat">영상 <b>${videos}</b></div><div class="stat">최애 <b>${favs}</b></div><div class="stat">미분류 <b>${un}</b></div>`;
  const g=document.querySelector("#gallery");
  releaseGalleryMedia();
+ if(document.querySelector('#viewMode').value==='folder'&&!folderMember){
+  g.innerHTML='<div class="member-folders">'+['미분류',...ASSIGNABLE,'단체'].map(m=>{const count=arr.filter(x=>memberMatches(x,new Set([m]))).length;return '<button class="member-folder" data-folder="'+esc(m)+'"><span aria-hidden="true">📁</span><b>'+esc(m)+'</b><small>'+count+'개</small></button>'}).join('')+'</div>';
+  document.querySelector('#pagination').innerHTML='';updateBulk();return;
+ }
+ if(document.querySelector('#viewMode').value==='folder'&&folderMember){
+  g.innerHTML='<div class="member-head"><button class="btn" id="folderBack">← 폴더 목록</button><h2>'+esc(folderMember)+'</h2><span>'+arr.length+'개</span></div>'+(arr.length?'<div class="grid">'+pageArr.map(cardHTML).join('')+'</div>':'<div class="empty">조건에 맞는 사진이 없습니다.</div>');observeGalleryMedia();renderPagination(arr.length);updateBulk();return;
+ }
  if(!arr.length){g.innerHTML=`<div class="empty">${items.length?"조건에 맞는 사진이 없습니다.":"사진을 추가하면 여기에 예쁘게 정리됩니다."}</div>`;renderPagination(0);updateBulk();return}
  if(document.querySelector("#viewMode").value==="member"&&!memberFilters.size){
-  g.innerHTML=MEMBER_FILTERS.map(m=>{
+  g.innerHTML=["미분류",...ASSIGNABLE,"단체"].map(m=>{
    const group=pageArr.filter(x=>memberMatches(x,new Set([m])));
    if(!group.length)return "";
    return `<section class="member-section"><div class="member-head"><h2>${esc(SceneCategories.label(m))}</h2><span class="member-count">이 페이지 ${group.length}장</span></div><div class="grid">${group.map(cardHTML).join("")}</div><div class="member-divider"></div></section>`;
@@ -958,6 +972,8 @@ document.body.addEventListener("click",async e=>{
   else memberFilters.add(m);
   currentPage=1;render();return
  }
+ const folder=e.target.closest('[data-folder]');if(folder){folderMember=folder.dataset.folder;currentPage=1;render();return}
+ if(e.target.closest('#folderBack')){folderMember=null;currentPage=1;render();return}
  const card=e.target.closest(".card"); if(!card)return;
  const id=card.dataset.id, x=items.find(v=>v.id===id);
  if(Date.now()<suppressCardClickUntil){e.preventDefault();return}
@@ -975,7 +991,7 @@ headerMenus.forEach(menu=>{
 });
 document.addEventListener("click",e=>{headerMenus.forEach(menu=>{if(!menu.contains(e.target))menu.open=false})});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")headerMenus.forEach(menu=>{if(menu.open){menu.open=false;menu.querySelector("summary").focus()}})});
-["search","sort","activityFilter","favFilter","mediaFilter","categoryView","viewMode","dateFrom","dateTo"].forEach(id=>document.querySelector("#"+id).addEventListener(id==="search"?"input":"change",()=>{if(id==="sort")resetRandomOrder();currentPage=1;render()}));
+["search","sort","activityFilter","favFilter","mediaFilter","categoryView","viewMode","dateFrom","dateTo"].forEach(id=>document.querySelector("#"+id).addEventListener(id==="search"?"input":"change",()=>{if(id==="sort")resetRandomOrder();if(id==="viewMode")folderMember=null;currentPage=1;render()}));
 function applyPhotoColumns(value){const columns=['2','3','4','5','6'].includes(String(value))?String(value):'3';document.querySelector('#photoSize').value=columns;document.body.dataset.photoColumns=columns;document.body.style.setProperty('--photo-columns',columns);document.body.dataset.photoSize=({'2':'large','3':'normal','4':'small','5':'tiny','6':'tiny'})[columns]}
 document.querySelector("#photoSize").addEventListener("change",e=>{applyPhotoColumns(e.target.value);localStorage.setItem("sceneBoxPhotoColumns",e.target.value);currentPage=1;render();});
 document.querySelector("#pagination").addEventListener("click",e=>{
@@ -1230,7 +1246,7 @@ document.querySelector("#homeBtn").onclick=()=>{
  document.querySelector("#categoryView").value="all";
  document.querySelector("#dateFrom").value="";
  document.querySelector("#dateTo").value="";
- document.querySelector("#viewMode").value="grid";
+ document.querySelector("#viewMode").value="member";folderMember=null;
  currentPage=1;
  updateBulk();
  render();
