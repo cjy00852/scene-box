@@ -71,7 +71,7 @@ async function main(){
  assert.deepEqual(await page.evaluate(async()=>(await SceneData.photo('orphan-category')).categoryIds),['category-other']);await page.evaluate(()=>del('orphan-category'));
  console.log('PASS EXIF/video dates, metadata priority, unknown category recovery');
  // Fake API: no real credentials, uploads, or Google requests leave this test context.
- const files=new Map(),sessions=new Map();let ids=0,oauthCalls=0,uploadCalls=0,failUpload=false,unauthorized=false,alwaysFail=false,activeUploads=0,peakUploads=0;
+ const files=new Map(),sessions=new Map();let ids=0,oauthCalls=0,uploadCalls=0,failUpload=false,unauthorized=false,failRoot=false,alwaysFail=false,activeUploads=0,peakUploads=0;
  await context.route('**/google-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.SCENE_GOOGLE_CLIENT_ID="test-client";'}));
  await context.route('https://accounts.google.com/gsi/client',r=>r.fulfill({contentType:'text/javascript',body:'window.google={accounts:{oauth2:{initTokenClient:o=>({requestAccessToken:()=>{window.testOAuthCalls=(window.testOAuthCalls||0)+1;Object.defineProperty(document,"hidden",{configurable:true,value:true});o.callback({access_token:"TEST_ONLY",expires_in:3600});setTimeout(()=>{Object.defineProperty(document,"hidden",{configurable:true,value:false});document.dispatchEvent(new Event("visibilitychange"))},100)}})}}};'}));
  await context.addInitScript(()=>{Object.defineProperty(navigator,'wakeLock',{value:{request:async()=>{window.wakeRequests=(window.wakeRequests||0)+1;return {release:async()=>{window.wakeReleases=(window.wakeReleases||0)+1}}}}})});
@@ -95,7 +95,7 @@ async function main(){
    files.set(session.id,{...files.get(session.id),...session.meta,id:session.id,parents:session.meta.parents||files.get(session.id)?.parents||[],trashed:false});return send({id:session.id});
   }
   const id=u.pathname.match(/\/files\/([^/]+)$/)?.[1];
-  if(id){const file=files.get(id);if(!file)return send({},404);if(method==='PATCH'){Object.assign(file,body());if(u.searchParams.has('addParents'))file.parents=[u.searchParams.get('addParents')]}return send(file)}
+  if(id){if(failRoot&&files.get(id)?.appProperties?.sceneBoxFolder==='root'){failRoot=false;return send({error:{message:'temporary folder check failure'}},503)}const file=files.get(id);if(!file)return send({},404);if(method==='PATCH'){Object.assign(file,body());if(u.searchParams.has('addParents'))file.parents=[u.searchParams.get('addParents')]}return send(file)}
   if(method==='POST'){const meta=body();if(files.has(meta.id))return send({},409);files.set(meta.id,{...meta,trashed:false});return send(files.get(meta.id))}
   const q=u.searchParams.get('q')||'',parent=q.match(/'([^']+)' in parents/)?.[1],prop=q.match(/key='([^']+)' and value='([^']+)'/);
   const found=[...files.values()].filter(f=>!f.trashed&&(!parent||f.parents?.includes(parent))&&(!prop||f.appProperties?.[prop[1]]===prop[2]));return send({files:found});
@@ -135,6 +135,7 @@ async function main(){
  assert.equal(peakUploads,20);assert.equal(parallelFiles.length,40);assert.equal(new Set(parallelFiles.map(f=>f.name)).size,40);assert.equal(new Set(parallelFiles.map(f=>f.parents[0])).size,1);
  assert.equal([...files.values()].filter(f=>f.appProperties?.sceneBoxFolder==='combo:미나미+메이').length,1);
  await page.evaluate(()=>SceneDrive.renderStatus());assert.equal(await page.locator('#driveQuickBtn').getAttribute('data-state'),'complete');
+ failRoot=true;await page.evaluate(()=>SceneDrive.run());assert.equal(await page.locator('#driveQuickBtn').getAttribute('data-state'),'complete');assert.match(await page.locator('#driveStatus').textContent(),/폴더 확인 실패/);await page.evaluate(()=>SceneDrive.run());assert.doesNotMatch(await page.locator('#driveStatus').textContent(),/폴더 확인 실패/);
  console.log('PASS twenty concurrent uploads, forty unique names and one shared combination folder');
  failUpload=true;
  await page.evaluate(async()=>{await put({id:'retry',name:'retry',originalName:'retry.png',blob:new Blob(['abc'],{type:'image/png'}),members:['메이'],date:'2026-09-20',tags:[],addedAt:Date.now()});await load()});

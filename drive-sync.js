@@ -117,7 +117,8 @@ window.SceneDrive=(()=>{
   else if(!navigator.onLine){label='인터넷 연결 필요'}
   else if(connected&&!valid()){state='error';label='재연결 필요'}
   else if(valid()){
-   if(rootFailures||jobs.some(j=>j.state==='failed')){state='error';label='동기화 확인 필요'}
+   if(files.some(j=>j.state==='failed')){state='error';label='자료 '+counts.failed+'개 실패'}
+   else if(jobs.some(j=>j.kind==='category'&&j.state==='failed')){state='error';label='분류 폴더 확인 필요'}
    else if(jobs.some(j=>j.state==='running')){state='working';label='동기화 중'}
    else if(jobs.some(j=>j.state!=='success'||j.completedAccount!==session.accountId)){state='pending';label='동기화 대기'}
    else{state='complete';label='동기화 완료'}
@@ -138,7 +139,7 @@ window.SceneDrive=(()=>{
   if(folders.root){const root=await getFile(folders.root.id);if(!root||root.trashed){for(const f of Object.values(folders)){f.confirmed=false;f.created=true}if(!root){delete folders.root;await persistFolders()}await baseFolders();for(const j of await SceneData.jobs())await SceneData.patchJob(j.id,x=>({...x,state:'pending',attempts:0,nextAt:0,error:''}))}}
 
   for(const job of await SceneData.jobs()){const r=job.remotes?.[session?.accountId];if(r?.parent&&r.name){if(!reservedNames.has(r.parent))reservedNames.set(r.parent,new Map());reservedNames.get(r.parent).set(r.name,job.id)}}
-  rootFailures=0;
+  if(rootFailures)statusMessage='';rootFailures=0;
   async function processJob(job){
    await SceneData.patchJob(job.id,j=>({...j,state:'running'}));
    try{
@@ -165,7 +166,7 @@ window.SceneDrive=(()=>{
   if(running||!valid()||document.hidden||!navigator.onLine)return;running=true;
   try{if(navigator.locks)await navigator.locks.request('scene-box-drive-upload',{ifAvailable:true},async lock=>{if(lock)await processQueue()});else await processQueue()}
   catch(e){if(e.auth)expire();else if(!e.paused){rootFailures++;statusMessage='Drive 폴더 확인 실패: '+e.message+(rootFailures>=5?' · 실패 항목 재시도를 눌러주세요.':'')}}
-  finally{running=false;reservedNames.clear();await releaseWake();await renderStatus();const jobs=await SceneData.jobs(),waiting=jobs.filter(j=>j.state==='pending');if(waiting.length&&valid()&&rootFailures<5)schedule(Math.max(rootFailures?5000*2**rootFailures:1000,Math.min(...waiting.map(j=>j.nextAt||0))-Date.now()))}
+  finally{running=false;reservedNames.clear();await releaseWake();await renderStatus();const jobs=await SceneData.jobs(),waiting=jobs.filter(j=>j.state==='pending');if((waiting.length||rootFailures)&&valid()&&rootFailures<5)schedule(Math.max(rootFailures?5000*2**rootFailures:1000,(waiting.length?Math.min(...waiting.map(j=>j.nextAt||0))-Date.now():1000)))}
  }
  async function acceptToken(response){
   connecting=false;if(response.error){statusMessage='Google 연결을 완료하지 못했습니다: '+response.error;await renderStatus();return}
